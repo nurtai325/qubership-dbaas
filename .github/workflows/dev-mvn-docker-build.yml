@@ -1,4 +1,4 @@
-name: Dev Docker Build
+name: Dev Mvn Docker Build
 run-name: "Dev build repository: ${{ github.ref_name }} #${{ github.run_number }}"
 
 on:
