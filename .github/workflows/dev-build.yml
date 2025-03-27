@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       artifact-name:
-        description: 'Artifact name'
         required: false
         default: ''
+        description: 'Artifact name'        
       java-version:
         required: false
         type: string
