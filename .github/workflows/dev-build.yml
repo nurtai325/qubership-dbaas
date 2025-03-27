@@ -17,6 +17,11 @@ on:
         type: boolean
         default: false
         description: 'Dry run'
+      tags:
+        required: false
+        type: string
+        default: 'dev'
+        description: 'Tags'  
 
 jobs:
   dev-build:
@@ -56,4 +61,4 @@ jobs:
       artifact-id: ${{ github.event.inputs.artifact-name || github.event.repository.name }}
       dry-run: ${{ inputs.dry-run }}
       download-artifact: true
-      tags: '${{ needs.perform-version.outputs.metadata }}, dev'
+      tags: '${{ needs.perform-version.outputs.metadata }}, ${{ github.event.inputs.tags }}'
