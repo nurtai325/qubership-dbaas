@@ -5,8 +5,8 @@ on:
     inputs:
       artifact-name:
         description: 'Artifact name'
-        required: true
-        default: 'qubership-dbaas'
+        required: false
+        default: ''
       java-version:
         required: false
         type: string
@@ -17,7 +17,7 @@ on:
         type: boolean
         default: false
         description: 'Dry run'
-  
+
 jobs:
   dev-build:
     uses: netcracker/qubership-workflow-hub/.github/workflows/maven-publish.yml@main
@@ -25,19 +25,19 @@ jobs:
       maven-command: "--batch-mode package -Dgpg.skip=true -DskipTests=true"
       java-version: ${{ github.event.inputs.java-version }}
       upload-artifact: true
-      artifact-id: ${{ github.event.inputs.artifact-name }}
+      artifact-id: ${{ github.event.inputs.artifact-name || github.event.repository.name }}
       server-id: "github"
     secrets:
-      maven-token: ${{ secrets.GITHUB_TOKEN }} 
+      maven-token: ${{ secrets.GITHUB_TOKEN }}
 
   perform-version:
     runs-on: ubuntu-latest
     needs: dev-build
     outputs:
-       metadata: "${{ steps.metadata.outputs.result }}"
+      metadata: "${{ steps.metadata.outputs.result }}"
     steps:
-      - name : Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v2
 
       - name: Create name
         uses: netcracker/qubership-workflow-hub/actions/metadata-action@main
@@ -45,20 +45,15 @@ jobs:
         with:
           configuration-path: .github/metadata-config.yml
 
-      - name: Echo metadata 
-        run: 'echo Metadata result: ${{ steps.metadata.outputs.result }} >> $GITHUB_STEP_SUMMARY'     
- 
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ inputs.artifact-name }}
+      - name: Echo metadata
+        run: echo "Metadata result ${{ steps.metadata.outputs.result }}" >> $GITHUB_STEP_SUMMARY
 
-  docker-build:        
-       uses: netcracker/qubership-workflow-hub/.github/workflows/docker-publish.yml@main
-       needs: perform-version
-       with:
-         ref: ${{ github.event.ref }}
-         artifact-id: ${{ github.event.repository.name }}
-         dry-run: ${{ inputs.dry-run }}        
-         download-artifact: true
-         tags: ${{ needs.perform-version.outputs.metadata }}
+  docker-build:
+    uses: nookyo/qubership-workflow-hub/.github/workflows/docker-publish.yml@main
+    needs: perform-version
+    with:
+      ref: ${{ github.event.ref }}
+      artifact-id: ${{ github.event.inputs.artifact-name || github.event.repository.name }}
+      dry-run: ${{ inputs.dry-run }}
+      download-artifact: true
+      tags: '${{ needs.perform-version.outputs.metadata }}, dev'
