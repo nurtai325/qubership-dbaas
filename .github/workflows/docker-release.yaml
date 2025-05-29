@@ -9,16 +9,6 @@ on:
         default: '1.0.0'
         type: string
         description: 'Release version (e.g., 1.0.0)'
-      publish-dbaas:
-        required: false
-        type: boolean
-        default: true
-        description: 'Publish dbaas'
-      publish-validation-image:
-        required: false
-        type: boolean
-        default: false
-        description: 'Publish validation image'
       dry-run:
         required: false
         type: boolean
@@ -108,7 +98,6 @@ jobs:
 
   docker-build-publish:
     needs: [build]
-    if: inputs.publish-dbaas == 'true'
     uses: netcracker/qubership-workflow-hub/.github/workflows/docker-publish.yml@c07a5bf430a3c0120e189e6b54061b9bb8dde362
     with:
       artifact-id: ${{ github.event.repository.name }}
@@ -118,16 +107,8 @@ jobs:
       platforms: linux/amd64,linux/arm64
       component: '{"name": "default", "file": "dbaas/Dockerfile", "context": "dbaas"}'
 
-  github-release:
-    needs: [docker-build-publish]
-    uses: netcracker/qubership-workflow-hub/.github/workflows/release-drafter.yml@c07a5bf430a3c0120e189e6b54061b9bb8dde362
-    with:
-      version: ${{ github.event.inputs.version }}
-      publish: false
-
   docker-build-publish-validation-image:
     needs: [tag]
-    if: inputs.publish-validation-image == 'true'
     uses: netcracker/qubership-workflow-hub/.github/workflows/docker-publish.yml@c07a5bf430a3c0120e189e6b54061b9bb8dde362
     with:
       artifact-id: ${{ github.event.repository.name }}-validation-image
@@ -136,3 +117,10 @@ jobs:
       dry-run: ${{ github.event.inputs.dry-run == 'true' }}
       platforms: linux/amd64,linux/arm64
       component: '{"name": "default", "file": "validation-image/Dockerfile", "context": "validation-image"}'      
+
+  github-release:
+    needs: [docker-build-publish, docker-build-publish-validation-image]
+    uses: netcracker/qubership-workflow-hub/.github/workflows/release-drafter.yml@c07a5bf430a3c0120e189e6b54061b9bb8dde362
+    with:
+      version: ${{ github.event.inputs.version }}
+      publish: false
