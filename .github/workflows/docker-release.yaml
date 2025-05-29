@@ -83,7 +83,8 @@ jobs:
           server-password: MAVEN_PASSWORD
 
       - name: Build JAR artifact
-        run: mvn clean package -DskipTests -f ./dbaas/pom.xml
+        run: mvn clean package -DskipTests
+        working-directory: ./dbaas
         env:
           MAVEN_USERNAME: ${{ secrets.maven-username }}
           MAVEN_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
