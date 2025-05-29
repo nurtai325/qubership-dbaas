@@ -58,6 +58,7 @@ jobs:
     uses: netcracker/qubership-workflow-hub/.github/workflows/tag-creator.yml@c07a5bf430a3c0120e189e6b54061b9bb8dde362
     with:
       tag-name: v${{ github.event.inputs.version }}
+      ref: ${{ github.ref }}
 
   build:
     needs: [tag]
