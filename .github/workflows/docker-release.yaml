@@ -110,7 +110,7 @@ jobs:
       download-artifact: true
       dry-run: ${{ github.event.inputs.dry-run == 'true' }}
       platforms: linux/amd64,linux/arm64
-      component: '{"name": "default", "file": "dbaas/Dockerfile", "context": "dbaas"}'
+      component: '[{"name": "default", "file": "dbaas/Dockerfile", "context": "dbaas"}]'
 
   docker-build-publish-validation-image:
     needs: [tag]
@@ -121,7 +121,7 @@ jobs:
       download-artifact: true
       dry-run: ${{ github.event.inputs.dry-run == 'true' }}
       platforms: linux/amd64,linux/arm64
-      component: '{"name": "default", "file": "validation-image/Dockerfile", "context": "validation-image"}'      
+      component: '[{"name": "default", "file": "validation-image/Dockerfile", "context": "validation-image"}]'      
 
   github-release:
     needs: [docker-build-publish, docker-build-publish-validation-image]
