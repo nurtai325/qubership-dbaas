@@ -1,5 +1,5 @@
 FROM ghcr.io/netcracker/qubership/core-base:1.0.0
-MAINTAINER qubership
+LABEL maintainer="qubership"
 
 USER root
 
