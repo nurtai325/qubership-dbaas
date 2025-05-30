@@ -27,12 +27,6 @@ jobs:
         run: |
           echo "Version: ${{ github.event.inputs.version }}" >> $GITHUB_STEP_SUMMARY
 
-      - name: Checkout code
-        uses: actions/checkout@v4
-        # TODO: remove this once we have a way to get the ref from the event
-        with:
-          ref: ${{ github.ref }}
-
       - name: Check if tag exists
         id: check_tag
         uses: netcracker/qubership-workflow-hub/actions/tag-checker@c07a5bf430a3c0120e189e6b54061b9bb8dde362
