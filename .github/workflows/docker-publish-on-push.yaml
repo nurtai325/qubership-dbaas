@@ -1,5 +1,5 @@
 ---
-name: Release And Publish Docker Artifact
+name: Publish Docker Artifact On Push
 
 on:
   push
@@ -18,13 +18,11 @@ jobs:
         run: echo "tag=$(echo ${{github.ref_name}} | tr -cs 'a-zA-Z0-9' '-')snapshot" >> $GITHUB_OUTPUT
       - id: main_artifact
         run: echo "main_artifact=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
-      - id: validation_image_artifact
-        run: echo "validation_image_artifact=$(echo "${{ github.event.repository.name }}-validation-image" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
     outputs:
       tag_build_number: ${{ steps.tag_build_number.outputs.tag }}
       tag_snapshot: ${{ steps.tag_snapshot.outputs.tag }}
       main_artifact: ${{ steps.main_artifact.outputs.main_artifact }}
-      validation_image_artifact: ${{ steps.validation_image_artifact.outputs.validation_image_artifact }}
+      validation_image_artifact: ${{ steps.main_artifact.outputs.main_artifact }}-validation-image
 
   build:
     runs-on: ubuntu-latest
@@ -76,8 +74,8 @@ jobs:
       platforms: linux/amd64,linux/arm64
       component: '[{"name": "default", "file": "dbaas/Dockerfile", "context": "."}]'
       tags: |
-        ghcr.io/${{ needs.prepare-variables.outputs.main_artifact }}:${{ needs.prepare-variables.outputs.tag_build_number }}
-        ghcr.io/${{ needs.prepare-variables.outputs.main_artifact }}:${{ needs.prepare-variables.outputs.tag_snapshot }}
+        ${{ needs.prepare-variables.outputs.tag_build_number }}
+        ${{ needs.prepare-variables.outputs.tag_snapshot }}
 
 
   docker-build-publish-validation-image:
@@ -88,5 +86,5 @@ jobs:
       platforms: linux/amd64,linux/arm64
       component: '[{"name": "default", "file": "validation-image/Dockerfile", "context": "validation-image"}]'      
       tags: |
-        ghcr.io/${{ needs.prepare-variables.outputs.validation_image_artifact }}:${{ needs.prepare-variables.outputs.tag_build_number }}
-        ghcr.io/${{ needs.prepare-variables.outputs.validation_image_artifact }}:${{ needs.prepare-variables.outputs.tag_snapshot }}
+        ${{ needs.prepare-variables.outputs.tag_build_number }}
+        ${{ needs.prepare-variables.outputs.tag_snapshot }}
