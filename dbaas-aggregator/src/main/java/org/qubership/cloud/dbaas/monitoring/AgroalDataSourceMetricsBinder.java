@@ -13,6 +13,7 @@ import java.util.function.Supplier;
 public class AgroalDataSourceMetricsBinder implements MeterBinder {
 
     public static final String ACTIVE_COUNT_METRIC_NAME = "agroal.active.count";
+    public static final String AVAILABLE_COUNT_METRIC_NAME = "agroal_available_count";
     public static final String MAX_USED_COUNT_METRIC_NAME = "agroal.max.used.count";
     public static final String AWAITING_COUNT_METRIC_NAME = "agroal.awaiting.count";
     public static final String ACQUIRE_COUNT_METRIC_NAME = "agroal.acquire.count";
@@ -46,6 +47,7 @@ public class AgroalDataSourceMetricsBinder implements MeterBinder {
         AgroalDataSourceMetrics metrics = agroalDataSource.getMetrics();
 
         bindGauge(ACTIVE_COUNT_METRIC_NAME, "Number of active connections. These connections are in use and not available to be acquired.", metrics::activeCount, meterRegistry);
+        bindGauge(AVAILABLE_COUNT_METRIC_NAME, "The number of idle connections in the pool, available to be acquired.", metrics::availableCount, meterRegistry);
         bindGauge(MAX_USED_COUNT_METRIC_NAME, "Maximum number of connections active simultaneously.", metrics::maxUsedCount, meterRegistry);
         bindGauge(AWAITING_COUNT_METRIC_NAME, "Approximate number of threads blocked, waiting to acquire a connection.", metrics::awaitingCount, meterRegistry);
 
