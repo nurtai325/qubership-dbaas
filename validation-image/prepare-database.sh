@@ -10,9 +10,9 @@ cat << EOF | kubectl apply -f - --namespace="${NAMESPACE}"
         "name": "dbaas-storage-credentials"
       },
       "data": {
-        "username": "$(printf "${2}" | base64 -w 0)",
-        "password": "$(printf "${3}" | base64 -w 0)",
-        "database": "$(printf "${1}" | base64 -w 0)"
+        "username": "$(printf "%s" "${2}" | base64 -w 0)",
+        "password": "$(printf "%s" "${3}" | base64 -w 0)",
+        "database": "$(printf "%s" "${1}" | base64 -w 0)"
       }
     }
 EOF
