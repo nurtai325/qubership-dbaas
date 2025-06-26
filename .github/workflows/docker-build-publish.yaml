@@ -63,8 +63,8 @@ jobs:
         with:
           name: dbaas
           path: |
-            dbaas/dbaas-aggregator/target/lib
-            dbaas/dbaas-aggregator/target/dbaas-aggregator-*-runner.jar
+            dbaas-aggregator/target/lib
+            dbaas-aggregator/target/dbaas-aggregator-*-runner.jar
           if-no-files-found: error
           retention-days: 1
 
@@ -78,26 +78,8 @@ jobs:
             [
               {
                 "name": "default",
-                "file": "dbaas/Dockerfile",
+                "file": "Dockerfile",
                 "context": "./artifacts/dbaas"
-              }
-            ]
-          platforms: linux/amd64,linux/arm64
-          tags: ${{ inputs.docker-tags }}
-          dry-run: ${{ inputs.dry-run }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and Publish Validation Docker Image
-        uses: netcracker/qubership-workflow-hub/actions/docker-action@v1.0.3
-        with:
-          ref: ${{ inputs.ref }}
-          component: |
-            [
-              {
-                "name": "qubership-dbaas-validation-image",
-                "file": "validation-image/Dockerfile",
-                "context": "./validation-image"
               }
             ]
           platforms: linux/amd64,linux/arm64
