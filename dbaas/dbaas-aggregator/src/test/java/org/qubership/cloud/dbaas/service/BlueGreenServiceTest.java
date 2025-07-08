@@ -33,7 +33,6 @@ import org.qubership.core.scheduler.po.task.TaskState;
 
 import java.util.*;
 
-import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.*;
 import static org.qubership.cloud.dbaas.Constants.*;
 import static org.qubership.cloud.dbaas.service.DBaaService.MARKED_FOR_DROP;
@@ -537,7 +536,7 @@ class BlueGreenServiceTest {
         bgState.setControllerNamespace(NS_C);
         bgStateRequest.setBGState(bgState);
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> blueGreenService.initBgDomain(bgStateRequest));
+        RuntimeException exception = Assertions.assertThrows(RuntimeException.class, () -> blueGreenService.initBgDomain(bgStateRequest));
 
         Assertions.assertTrue(exception.getMessage().contains("States of bgRequest must be active and idle, but were active and differentState"));
         Assertions.assertTrue(exception.getMessage().contains("CORE-DBAAS-4037"));
@@ -553,7 +552,7 @@ class BlueGreenServiceTest {
         bgDomain.setNamespaces(List.of(bgNamespace));
         when(bgNamespaceRepository.findBgNamespaceByNamespace(NS_1)).thenReturn(Optional.of(bgNamespace));
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> blueGreenService.initBgDomain(bgStateRequest));
+        RuntimeException exception = Assertions.assertThrows(RuntimeException.class, () -> blueGreenService.initBgDomain(bgStateRequest));
         Assertions.assertTrue(exception.getMessage().contains("One of requested namespaces already used in another bgDomain"));
         Assertions.assertTrue(exception.getMessage().contains("CORE-DBAAS-4037"));
     }
@@ -577,7 +576,7 @@ class BlueGreenServiceTest {
         when(bgNamespaceRepository.findBgNamespaceByNamespace(NS_1)).thenReturn(Optional.of(bgNamespace3));
         when(bgNamespaceRepository.findBgNamespaceByNamespace(NS_2)).thenReturn(Optional.of(bgNamespace4));
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> blueGreenService.initBgDomain(bgStateRequest));
+        RuntimeException exception = Assertions.assertThrows(RuntimeException.class, () -> blueGreenService.initBgDomain(bgStateRequest));
         Assertions.assertTrue(exception.getMessage().contains("These namespaces already belongs to different bgDomains"));
         Assertions.assertTrue(exception.getMessage().contains("CORE-DBAAS-4037"));
     }
@@ -899,7 +898,7 @@ class BlueGreenServiceTest {
     void testDestroyDomainNotFound() {
         Set<String> bgStateRequest = Set.of("test-namespace-active", "test-namespace-candidate");
 
-        assertThrows(BgDomainNotFoundException.class, () -> blueGreenService.destroyDomain(bgStateRequest));
+        Assertions.assertThrows(BgDomainNotFoundException.class, () -> blueGreenService.destroyDomain(bgStateRequest));
         verify(bgDomainRepository, times(0)).delete(any());
     }
 
@@ -918,7 +917,7 @@ class BlueGreenServiceTest {
         SortedSet<String> bgStateRequest = new TreeSet<>();// Set.of("test-namespace-active", "test-namespace-incorrect-candidate");
         bgStateRequest.add("test-namespace-active");
         bgStateRequest.add("test-namespace-incorrect-candidate");
-        assertThrows(BgRequestValidationException.class, () -> blueGreenService.destroyDomain(bgStateRequest));
+        Assertions.assertThrows(BgRequestValidationException.class, () -> blueGreenService.destroyDomain(bgStateRequest));
         verify(bgDomainRepository, times(0)).delete(any());
     }
 
