@@ -1,10 +1,7 @@
-package org.qubership.cloud.dbaas.security;
+package org.qubership.cloud.dbaas.config.security;
 
 import java.util.HashSet;
 import java.util.Set;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.quarkus.security.identity.IdentityProviderManager;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -25,8 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 @ApplicationScoped
 @Slf4j
 public class BasicAndK8sJwtAuthMechanism implements HttpAuthenticationMechanism {
-	private static final Logger LOG = LoggerFactory.getLogger(BasicAndK8sJwtAuthMechanism.class);
-
 	@Inject
 	BasicAuthenticationMechanism basicAuth;
 
