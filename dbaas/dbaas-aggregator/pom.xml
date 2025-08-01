@@ -276,6 +276,10 @@
 			<artifactId>okhttp-tls</artifactId>
 			<version>4.12.0</version>
 		</dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-kubernetes-config</artifactId>
+        </dependency>
 	</dependencies>
 
     <build>
