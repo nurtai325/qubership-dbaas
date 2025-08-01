@@ -6,12 +6,12 @@ import org.qubership.cloud.dbaas.dto.*;
 import org.qubership.cloud.dbaas.dto.role.Role;
 import org.qubership.cloud.dbaas.dto.v3.*;
 import org.qubership.cloud.dbaas.entity.pg.*;
-import org.qubership.cloud.dbaas.entity.pg.backup.NamespaceBackup;
 import org.qubership.cloud.dbaas.exceptions.*;
 import org.qubership.cloud.dbaas.repositories.dbaas.DatabaseHistoryDbaasRepository;
 import org.qubership.cloud.dbaas.repositories.dbaas.LogicalDbDbaasRepository;
 import org.qubership.cloud.dbaas.repositories.pg.jpa.DatabaseDeclarativeConfigRepository;
 import org.qubership.cloud.dbaas.repositories.pg.jpa.LogicalDbOperationErrorRepository;
+import org.qubership.cloud.dbaas.security.validators.NamespaceValidator;
 import org.qubership.cloud.framework.contexts.xrequestid.XRequestIdContextObject;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -74,6 +74,8 @@ public class DBaaService {
     ProcessConnectionPropertiesService connectionPropertiesService;
     @Inject
     DatabaseRolesService databaseRolesService;
+    @Inject
+    NamespaceValidator namespaceValidator;
 
     private ExecutorService asyncExecutorService = Executors.newSingleThreadExecutor();
 
@@ -240,11 +242,17 @@ public class DBaaService {
     }
 
     public boolean isValidClassifierV3(Map<String, Object> classifier) {
-        return classifier != null &&
+        if (!(classifier != null &&
                 (classifier.containsKey(SCOPE) &&
                         ((classifier.get(SCOPE).equals(SCOPE_VALUE_TENANT) && classifier.containsKey(TENANT_ID)) ||
                                 classifier.get(SCOPE).equals(SCOPE_VALUE_SERVICE)) &&
-                        classifier.containsKey(MICROSERVICE_NAME) && classifier.containsKey(NAMESPACE));
+                        classifier.containsKey(MICROSERVICE_NAME) && classifier.containsKey(NAMESPACE)))) {
+            return false;
+        }
+        if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(classifier, namespaceValidator)) {
+            throw InvalidClassifierException.withDefaultMsg(classifier);
+        }
+        return true;
     }
 
     public void dropDatabase(DatabaseRegistry databaseRegistry) {
