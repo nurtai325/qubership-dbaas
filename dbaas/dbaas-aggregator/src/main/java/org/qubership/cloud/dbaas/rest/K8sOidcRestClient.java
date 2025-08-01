@@ -1,14 +1,13 @@
 package org.qubership.cloud.dbaas.rest;
 
-import javax.net.ssl.*;
-
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.qubership.cloud.dbaas.security.OidcConfig;
+import org.qubership.cloud.dbaas.security.interceptors.K8sTokenInterceptor;
+import org.qubership.cloud.dbaas.dto.oidc.OidcConfig;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import okhttp3.OkHttpClient.Builder;
 import okhttp3.Request;
@@ -17,70 +16,78 @@ import okhttp3.Call;
 import okhttp3.tls.Certificates;
 import okhttp3.tls.HandshakeCertificates;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.cert.X509Certificate;
 
 @ApplicationScoped
+@Slf4j
 public class K8sOidcRestClient {
-	@Inject
-	@ConfigProperty(name = "dbaas.security.jwt.jwks.use-certificate")
-	Boolean useCertificate;
-
-	@Inject
-	@ConfigProperty(name = "dbaas.security.jwt.jwks.use-token")
-	Boolean useToken;
-
-	private OkHttpClient client;
-
 	private static final String caCertPath = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt";
 
-	public K8sOidcRestClient() throws Exception {
-		Builder builder = new OkHttpClient.Builder();
+    private final OkHttpClient client;
 
-		if (useCertificate) {
-			setSslSocketFactory(builder);
-		}
+    // TODO: use cert and use token should have priority over platform
+    public K8sOidcRestClient(@ConfigProperty(name = "dbaas.security.jwt.jwks.use-certificate") boolean useCertificate,
+                             @ConfigProperty(name = "dbaas.security.jwt.jwks.use-token") boolean useToken)
+            throws Exception {
+        log.debug("Started creating K8sOidcRestClient bean");
 
-		if (useToken) {
-			builder.addInterceptor(new K8sTokenInterceptor());
-		}
+        Builder builder = new OkHttpClient.Builder();
 
-		client = builder.build();
-	}
+        if (useCertificate) {
+            setSslSocketFactory(builder);
+        }
 
-	public OidcConfig getOidcConfiguration(String oidcProviderUrl) throws Exception {
-		Request request = new Request.Builder()
-				.url(oidcProviderUrl + "/.well-known/openid-configuration")
-				.build();
+        if (useToken) {
+            builder.addInterceptor(new K8sTokenInterceptor());
+        }
 
-		Call call = client.newCall(request);
-		Response response = call.execute();
+        client = builder.build();
 
-		ObjectMapper objectMapper = new ObjectMapper();
-		OidcConfig oidcConfiguration = objectMapper.readValue(response.body().string(), OidcConfig.class);
+        log.debug("Finished creating K8sOidcRestClient bean");
+    }
 
-		return oidcConfiguration;
-	}
+    public OidcConfig getOidcConfiguration(String oidcProviderUrl) throws RuntimeException {
+        Request request = new Request.Builder()
+                .url(oidcProviderUrl + "/.well-known/openid-configuration")
+                .build();
 
-	public String getJwks(String jwksEndpoint) throws Exception {
-		Request request = new Request.Builder()
-				.url(jwksEndpoint)
-				.build();
+        Call call = client.newCall(request);
+        try (Response response = call.execute()) {
+            ObjectMapper objectMapper = new ObjectMapper();
+            if (response.body() == null) {
+                throw new RuntimeException("Response for requesting oidc configuration from Kubernetes IDP does not have response body");
+            }
+            return objectMapper.readValue(response.body().string(), OidcConfig.class);
+        } catch(IOException e) {
+            log.error("Failed to retrieve OIDC configuration from Kubernetes IDP", e);
+            throw new RuntimeException(e);
+        }
+    }
 
-		Call call = client.newCall(request);
-		Response response = call.execute();
+    public String getJwks(String jwksEndpoint) throws IOException {
+        Request request = new Request.Builder()
+                .url(jwksEndpoint)
+                .build();
 
-		return response.body().string();
-	}
+        Call call = client.newCall(request);
+        try (Response response = call.execute()) {
+            if (response.body() == null) {
+                throw new RuntimeException("Response for requesting jwks from Kubernetes IDP does not have response body");
+            }
+            return response.body().string();
+        }
+    }
 
-	private void setSslSocketFactory(Builder builder) throws Exception {
-		X509Certificate caCert = Certificates.decodeCertificatePem(Files.readString(Path.of(caCertPath)));
+    private void setSslSocketFactory(Builder builder) throws IOException {
+        X509Certificate caCert = Certificates.decodeCertificatePem(Files.readString(Path.of(caCertPath)));
 
-		HandshakeCertificates certificates = new HandshakeCertificates.Builder()
-				.addTrustedCertificate(caCert)
-				.build();
+        HandshakeCertificates certificates = new HandshakeCertificates.Builder()
+                .addTrustedCertificate(caCert)
+                .build();
 
-		builder.sslSocketFactory(certificates.sslSocketFactory(), (X509TrustManager) certificates.trustManager());
-	}
+        builder.sslSocketFactory(certificates.sslSocketFactory(), certificates.trustManager());
+    }
 }
