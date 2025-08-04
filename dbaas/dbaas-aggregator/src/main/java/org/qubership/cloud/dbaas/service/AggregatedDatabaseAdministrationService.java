@@ -1,5 +1,6 @@
 package org.qubership.cloud.dbaas.service;
 
+import org.qubership.cloud.context.propagation.core.ContextManager;
 import org.qubership.cloud.dbaas.dto.AbstractDatabaseCreateRequest;
 import org.qubership.cloud.dbaas.dto.Source;
 import org.qubership.cloud.dbaas.dto.role.Role;
@@ -29,6 +30,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.hibernate.exception.ConstraintViolationException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.qubership.cloud.framework.contexts.xrequestid.XRequestIdContextObject;
 
 import java.lang.reflect.InvocationTargetException;
 import java.sql.SQLException;
@@ -40,6 +42,7 @@ import static org.qubership.cloud.dbaas.Constants.*;
 import static org.qubership.cloud.dbaas.service.AbstractDbaasAdapterRESTClient.MICROSERVICE_NAME;
 import static org.qubership.cloud.dbaas.service.PasswordEncryption.PASSWORD_FIELD;
 import static org.postgresql.util.PSQLState.UNIQUE_VIOLATION;
+import static org.qubership.cloud.framework.contexts.xrequestid.XRequestIdContextObject.X_REQUEST_ID;
 
 @Slf4j
 @ApplicationScoped
@@ -263,7 +266,11 @@ public class AggregatedDatabaseAdministrationService {
         }
 
         if (Boolean.TRUE.equals(async)) {
-            executorService.submit(() -> createNewDatabase(createRequest, namespace, password, serviceRole, databaseRegistry));
+            var requestId = ((XRequestIdContextObject) ContextManager.get(X_REQUEST_ID)).getRequestId();
+            executorService.submit(() -> {
+                ContextManager.set(X_REQUEST_ID, new XRequestIdContextObject(requestId));
+                return createNewDatabase(createRequest, namespace, password, serviceRole, databaseRegistry);
+            });
 
             DatabaseRegistry responseDatabaseRegistry = createCopyForResponse(databaseRegistry);
             preResponseProcessing(responseDatabaseRegistry, password);
@@ -383,7 +390,7 @@ public class AggregatedDatabaseAdministrationService {
                 || databaseRegistry.getDatabase().getConnectionProperties().get(0).isEmpty()) {
             Map<String, Object> anotherMap = new HashMap<>();
             anotherMap.put(ROLE, Role.ADMIN.toString());
-            databaseRegistry.getDatabase().setConnectionProperties(Arrays.asList(anotherMap));
+            databaseRegistry.getDatabase().setConnectionProperties(List.of(anotherMap));
         }
         dBaaService.getConnectionPropertiesService().addAdditionalPropToCP(databaseRegistry);
         log.debug("Database connection properties = {}", databaseRegistry.getDatabase().getConnectionProperties());
@@ -398,7 +405,7 @@ public class AggregatedDatabaseAdministrationService {
             if (createdDatabase != null && createdDatabase.getResources() != null) {
                 log.info("Rollback creation of database {}", createdDatabase.getName());
                 dBaaService.dropDatabase(databaseRegistry);
-                log.info("Database resources: " + createdDatabase.getResources() + " were dropped via roll back operation");
+                log.info("Database resources: {} were dropped via roll back operation", createdDatabase.getResources());
             }
             log.info("Rollback creation of registry {}", databaseRegistry.getId());
             databaseRegistryDbaasRepository.delete(databaseRegistry);
@@ -438,7 +445,7 @@ public class AggregatedDatabaseAdministrationService {
             if (databaseRegistry.getDatabase().getConnectionProperties() == null) {
                 Map<String, Object> anotherMap = new HashMap<>();
                 anotherMap.put(ROLE, Role.ADMIN.toString());
-                databaseRegistry.getDatabase().setConnectionProperties(Arrays.asList(anotherMap));
+                databaseRegistry.getDatabase().setConnectionProperties(List.of(anotherMap));
             }
             dBaaService.getConnectionPropertiesService().addAdditionalPropToCP(databaseRegistry);
             ConnectionPropertiesUtils.getConnectionProperties(databaseRegistry.getDatabase().getConnectionProperties(),

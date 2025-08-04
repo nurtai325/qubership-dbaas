@@ -200,8 +200,9 @@ public class DBaaService {
     public void dropDatabasesAsync(String namespace, List<DatabaseRegistry> databaseRegistries) {
         if (!dbaaSHelper.isProductionMode()) {
             ExecutorService executorService = Executors.newSingleThreadExecutor();
-
+            var requestId = ((XRequestIdContextObject) ContextManager.get(X_REQUEST_ID)).getRequestId();
             executorService.submit(() -> {
+                ContextManager.set(X_REQUEST_ID, new XRequestIdContextObject(requestId));
                 log.info("Start async dropping versioned and transactional databases in {}", namespace);
                 dropDatabases(databaseRegistries, namespace);
             });
@@ -974,11 +975,11 @@ public class DBaaService {
     public DatabaseRegistry shareDbToNamespace(DatabaseRegistry sourceRegistry, String targetNamespace) {
         Database sourceDatabase = sourceRegistry.getDatabase();
         DatabaseRegistry newRegistry = new DatabaseRegistry(sourceRegistry, targetNamespace);
+        log.debug("Share static database to {} namespace with new classifier {}", targetNamespace, newRegistry.getClassifier());
         Optional<DatabaseRegistry> existingRegistry = sourceDatabase.getDatabaseRegistry().stream()
                 .filter(dbr -> dbr.getClassifier().equals(newRegistry.getClassifier())
                                && dbr.getType().equals(newRegistry.getType()))
                 .findFirst();
-        log.debug("Share static database to {} namespace with new classifier {}", targetNamespace, newRegistry.getClassifier());
         if (existingRegistry.isEmpty()) {
             sourceDatabase.getDatabaseRegistry().add(newRegistry);
             logicalDbDbaasRepository.getDatabaseRegistryDbaasRepository().saveAnyTypeLogDb(newRegistry);
