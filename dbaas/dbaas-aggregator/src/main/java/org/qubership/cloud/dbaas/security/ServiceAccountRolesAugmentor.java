@@ -1,14 +1,13 @@
 package org.qubership.cloud.dbaas.security;
 
-import jakarta.inject.Inject;
-import org.qubership.cloud.dbaas.Constants;
-
 import io.quarkus.security.identity.AuthenticationRequestContext;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.security.identity.SecurityIdentityAugmentor;
 import io.quarkus.security.runtime.QuarkusSecurityIdentity;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import org.qubership.cloud.dbaas.Constants;
 
 import java.util.HashSet;
 import java.util.List;
@@ -18,11 +17,11 @@ public class ServiceAccountRolesAugmentor implements SecurityIdentityAugmentor {
     @Inject
     ServiceAccountRoles secretReader;
 
-	@Override
-	public Uni<SecurityIdentity> augment(SecurityIdentity identity, AuthenticationRequestContext context) {
-		if (identity.isAnonymous()) {
-			return Uni.createFrom().item(identity);
-		}
+    @Override
+    public Uni<SecurityIdentity> augment(SecurityIdentity identity, AuthenticationRequestContext context) {
+        if (identity.isAnonymous()) {
+            return Uni.createFrom().item(identity);
+        }
 
         String principal = identity.getPrincipal().getName();
         String serviceName = principal.substring(principal.lastIndexOf(':') + 1);
@@ -36,5 +35,5 @@ public class ServiceAccountRolesAugmentor implements SecurityIdentityAugmentor {
         }
 
         return Uni.createFrom().item(builder.build());
-	}
+    }
 }

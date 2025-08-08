@@ -32,6 +32,23 @@ class K8sTokenWatcherTest {
     Path dataLink;
     Thread watcherThread;
 
+    private static String getNewJwt() throws JoseException {
+        RsaJsonWebKey rsaJsonWebKey = RsaJwkGenerator.generateJwk(2048);
+        rsaJsonWebKey.setKeyId("k1");
+
+        JwtClaims claims = new JwtClaims();
+        claims.setExpirationTimeMinutesInTheFuture(10);
+        claims.setIssuedAtToNow();
+
+        JsonWebSignature jws = new JsonWebSignature();
+        jws.setPayload(claims.toJson());
+        jws.setKey(rsaJsonWebKey.getPrivateKey());
+        jws.setKeyIdHeaderValue(rsaJsonWebKey.getKeyId());
+        jws.setAlgorithmHeaderValue(AlgorithmIdentifiers.RSA_USING_SHA256);
+
+        return jws.getCompactSerialization();
+    }
+
     @AfterEach
     void tearDown() {
         if (watcherThread != null) {
@@ -68,22 +85,5 @@ class K8sTokenWatcherTest {
         Failsafe.with(TOKEN_CACHE_UPDATED_RETRY_POLICY).run(() -> {
             assertEquals(newJwt, tokenCache.get());
         });
-    }
-
-    private static String getNewJwt() throws JoseException {
-        RsaJsonWebKey rsaJsonWebKey = RsaJwkGenerator.generateJwk(2048);
-        rsaJsonWebKey.setKeyId("k1");
-
-        JwtClaims claims = new JwtClaims();
-        claims.setExpirationTimeMinutesInTheFuture(10);
-        claims.setIssuedAtToNow();
-
-        JsonWebSignature jws = new JsonWebSignature();
-        jws.setPayload(claims.toJson());
-        jws.setKey(rsaJsonWebKey.getPrivateKey());
-        jws.setKeyIdHeaderValue(rsaJsonWebKey.getKeyId());
-        jws.setAlgorithmHeaderValue(AlgorithmIdentifiers.RSA_USING_SHA256);
-
-        return jws.getCompactSerialization();
     }
 }

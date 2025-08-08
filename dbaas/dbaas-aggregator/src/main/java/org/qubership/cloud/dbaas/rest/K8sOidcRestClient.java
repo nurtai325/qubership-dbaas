@@ -1,20 +1,18 @@
 package org.qubership.cloud.dbaas.rest;
 
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.qubership.cloud.dbaas.security.interceptors.K8sTokenInterceptor;
-import org.qubership.cloud.dbaas.dto.oidc.OidcConfig;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.Call;
 import okhttp3.OkHttpClient;
 import okhttp3.OkHttpClient.Builder;
 import okhttp3.Request;
 import okhttp3.Response;
-import okhttp3.Call;
 import okhttp3.tls.Certificates;
 import okhttp3.tls.HandshakeCertificates;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.qubership.cloud.dbaas.dto.oidc.OidcConfig;
+import org.qubership.cloud.dbaas.security.interceptors.K8sTokenInterceptor;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -24,10 +22,9 @@ import java.security.cert.X509Certificate;
 @ApplicationScoped
 @Slf4j
 public class K8sOidcRestClient {
+    private final OkHttpClient client;
     @ConfigProperty(name = "dbaas.security.token.service-account.cert-path")
     String caCertPath;
-
-    private final OkHttpClient client;
 
     // TODO: use cert and use token should have priority over platform
     public K8sOidcRestClient(@ConfigProperty(name = "dbaas.security.jwt.jwks.use-certificate") boolean useCertificate,
@@ -62,7 +59,7 @@ public class K8sOidcRestClient {
                 throw new RuntimeException("Response for requesting oidc configuration from Kubernetes IDP does not have response body");
             }
             return objectMapper.readValue(response.body().string(), OidcConfig.class);
-        } catch(IOException e) {
+        } catch (IOException e) {
             log.error("Failed to retrieve OIDC configuration from Kubernetes IDP", e);
             throw new RuntimeException(e);
         }

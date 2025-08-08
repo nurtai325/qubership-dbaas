@@ -38,7 +38,7 @@ public class K8sTokenWatcher implements Runnable {
         this.tokenCache = tokenCache;
 
         try {
-            if(!refreshToken()){
+            if (!refreshToken()) {
                 throw new RuntimeException("Failed to load Kubernetes service account token with path %s".formatted(tokenLocation));
             }
 
@@ -50,7 +50,7 @@ public class K8sTokenWatcher implements Runnable {
                     .build();
             JwtClaims claims = jwtClaimsParser.processToClaims(tokenCache.get());
 
-            long refreshRateSeconds = claims.getExpirationTime().getValue()-claims.getIssuedAt().getValue();
+            long refreshRateSeconds = claims.getExpirationTime().getValue() - claims.getIssuedAt().getValue();
             retryPolicy = retryPolicy.withMaxDuration(Duration.ofSeconds(refreshRateSeconds));
 
             watchService = FileSystems.getDefault().newWatchService();
@@ -81,20 +81,19 @@ public class K8sTokenWatcher implements Runnable {
             }
         } catch (InterruptedException e) {
             log.error("K8sTokenWatcher listening thread interrupted", e);
-            return;
         }
     }
 
     private boolean refreshToken() throws InterruptedException {
         File tokenFile = new File(tokenLocation);
 
-        if(!tokenFile.exists()) {
+        if (!tokenFile.exists()) {
             String msg = "Kubernetes service account token at path %s doesn't exist".formatted(tokenLocation);
             log.error(msg);
             throw new InterruptedException(msg);
         }
 
-        if(!tokenFile.canRead()) {
+        if (!tokenFile.canRead()) {
             String msg = "Process doesn't have read permissions to Kubernetes service account token at path %s".formatted(tokenLocation);
             log.error(msg);
             throw new InterruptedException(msg);
@@ -106,7 +105,7 @@ public class K8sTokenWatcher implements Runnable {
                 tokenCache.set(tokenContents);
             });
             return true;
-        } catch(TimeoutExceededException e) {
+        } catch (TimeoutExceededException e) {
             log.error("Reading kubernetes service account token at path %s time out exceeded. Couldn't read token", e);
             return false;
         }
