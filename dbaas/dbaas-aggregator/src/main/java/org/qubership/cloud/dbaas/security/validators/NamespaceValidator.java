@@ -4,11 +4,8 @@ import io.smallrye.jwt.auth.principal.DefaultJWTCallerPrincipal;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.json.JsonString;
-import jakarta.ws.rs.WebApplicationException;
-import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.qubership.cloud.dbaas.entity.pg.composite.CompositeStructure;
 import org.qubership.cloud.dbaas.service.composite.CompositeNamespaceService;
@@ -31,17 +28,17 @@ public class NamespaceValidator {
     SecurityContext securityContext;
 
     public boolean checkNamespaceIsolation(String namespaceFromPath, String namespaceFromJwt) {
-        if(namespaceFromPath.equals(namespaceFromJwt)) {
+        if (namespaceFromPath.equals(namespaceFromJwt)) {
             return true;
         } else {
-            return checkNamespaceInComposite(namespaceFromPath);
+            return inSameCompositeStructure(namespaceFromPath, namespaceFromJwt);
         }
     }
 
     public boolean checkNamespaceFromClassifier(Map<String, Object> classifier) {
         Principal defaultPrincipal = securityContext.getUserPrincipal();
 
-        if(!(defaultPrincipal instanceof DefaultJWTCallerPrincipal principal)) {
+        if (!(defaultPrincipal instanceof DefaultJWTCallerPrincipal principal)) {
             return true;
         }
         String namespaceFromClassifier = (String) classifier.get("namespace");
@@ -59,19 +56,22 @@ public class NamespaceValidator {
             return false;
         }
 
-        return namespaceFromClassifier.equals(namespaceFromJwt.getString()) || checkNamespaceInComposite(namespaceFromClassifier);
+        return namespaceFromClassifier.equals(namespaceFromJwt.getString()) || inSameCompositeStructure(namespaceFromClassifier, namespaceFromJwt.getString());
     }
 
-    private boolean checkNamespaceInComposite(String namespace) {
-        Optional<CompositeStructure> compositeStructureOption = compositeNamespaceService.getCompositeStructure(thisBaseline);
+    private boolean inSameCompositeStructure(String namespace0, String namespace1) {
+        Optional<String> baseLine = compositeNamespaceService.getBaselineByNamespace(namespace0);
 
-        if(compositeStructureOption.isEmpty()) {
-            log.error("Can't get composite structure by baseline %s".formatted(thisBaseline));
+        if (baseLine.isEmpty()) {
             return false;
         }
 
-        CompositeStructure compositeStructure = compositeStructureOption.get();
+        Optional<CompositeStructure> compositeStructure = compositeNamespaceService.getCompositeStructure(baseLine.get());
 
-        return compositeStructure.getNamespaces().contains(namespace);
+        if (compositeStructure.isEmpty()) {
+            return false;
+        }
+
+        return compositeStructure.get().getNamespaces().contains(namespace1);
     }
 }

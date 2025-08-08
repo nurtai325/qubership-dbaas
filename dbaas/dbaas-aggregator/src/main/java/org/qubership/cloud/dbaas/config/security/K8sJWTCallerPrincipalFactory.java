@@ -26,7 +26,6 @@ import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Alternative;
 
-import java.io.IOException;
 import java.security.Key;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -49,7 +48,9 @@ public class K8sJWTCallerPrincipalFactory extends JWTCallerPrincipalFactory {
 
 	private final JwtConsumer jwtClaimsParser;
 
-    private final RetryPolicy<Object> retryPolicy;
+    private final RetryPolicy<Object> retryPolicy = new RetryPolicy<>()
+            .withMaxRetries(5)
+            .withBackoff(500, Duration.ofSeconds(60).toMillis(), ChronoUnit.MILLIS);
 
     private final AtomicReference<List<JsonWebKey>> jwksRef = new AtomicReference<>(new ArrayList<>());
 
@@ -57,10 +58,6 @@ public class K8sJWTCallerPrincipalFactory extends JWTCallerPrincipalFactory {
 			@ConfigProperty(name = "dbaas.security.jwt.audience") String jwtAudience,
 			K8sOidcRestClient k8sOidcRestClient)
 			throws Exception {
-        retryPolicy = new RetryPolicy<>()
-                .withMaxRetries(5)
-                .withBackoff(500, Duration.ofSeconds(60).toMillis(), ChronoUnit.MILLIS);
-
 		this.k8sOidcRestClient = k8sOidcRestClient;
 
 		jwtClaimsParser = new JwtConsumerBuilder()
@@ -94,7 +91,6 @@ public class K8sJWTCallerPrincipalFactory extends JWTCallerPrincipalFactory {
 				throw new ParseException("invalid jwt signature");
 			}
 
-
 			return new DefaultJWTCallerPrincipal(claims);
 		} catch (InvalidJwtException | JoseException e) {
 			throw new ParseException(e.getMessage());
@@ -110,7 +106,7 @@ public class K8sJWTCallerPrincipalFactory extends JWTCallerPrincipalFactory {
 		return jws.verifySignature();
 	}
 
-	private JsonWebKey refreshOrFindJwks(String keyId) throws JoseException {
+	private JsonWebKey refreshOrFindJwks(String keyId) {
         synchronized (lock) {
             if(keyId != null && !keyId.isEmpty()) {
                 JsonWebKey jwk = findJwkFromJwks(keyId);

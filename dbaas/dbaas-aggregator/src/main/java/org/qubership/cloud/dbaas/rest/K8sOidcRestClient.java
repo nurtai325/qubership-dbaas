@@ -24,7 +24,8 @@ import java.security.cert.X509Certificate;
 @ApplicationScoped
 @Slf4j
 public class K8sOidcRestClient {
-	private static final String caCertPath = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt";
+    @ConfigProperty(name = "dbaas.security.token.service-account.cert-path")
+    String caCertPath;
 
     private final OkHttpClient client;
 

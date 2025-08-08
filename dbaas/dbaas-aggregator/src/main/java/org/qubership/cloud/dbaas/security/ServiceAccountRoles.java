@@ -14,11 +14,16 @@ import java.util.Map;
 
 @ApplicationScoped
 public class ServiceAccountRoles {
-
+    private final ArrayList<ServiceAccountWithRoles> serviceAccountsWithRoles = new ArrayList<>();
     @ConfigProperty(name = "roles.yaml")
     String rawYaml;
 
-    private final ArrayList<ServiceAccountWithRoles> serviceAccountsWithRoles = new ArrayList<>();
+    public ServiceAccountRoles() {
+    }
+
+    public ServiceAccountRoles(String rawRolesSecret) {
+        this.rawYaml = rawRolesSecret;
+    }
 
     void onStart(@Observes StartupEvent ev) {
         try {
@@ -34,8 +39,8 @@ public class ServiceAccountRoles {
     }
 
     public List<String> getRolesByServiceAccountName(String serviceAccountName) {
-        for(ServiceAccountWithRoles s : serviceAccountsWithRoles) {
-            if(serviceAccountName.equals(s.getName())) {
+        for (ServiceAccountWithRoles s : serviceAccountsWithRoles) {
+            if (serviceAccountName.equals(s.getName())) {
                 return s.getRoles();
             }
         }

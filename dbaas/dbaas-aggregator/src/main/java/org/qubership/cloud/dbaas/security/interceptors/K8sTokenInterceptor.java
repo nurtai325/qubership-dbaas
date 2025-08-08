@@ -9,13 +9,17 @@ import lombok.extern.slf4j.Slf4j;
 import okhttp3.Interceptor;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jetbrains.annotations.NotNull;
 import org.qubership.cloud.dbaas.security.K8sTokenWatcher;
 
 @Slf4j
 public class K8sTokenInterceptor implements Interceptor {
-	private static final String tokenLocation = "/var/run/secrets/kubernetes.io/serviceaccount/token";
-	private static final String tokenDir = "/var/run/secrets/kubernetes.io/serviceaccount";
+    @ConfigProperty(name = "dbaas.security.token.service-account.path")
+    String tokenLocation;
+
+    @ConfigProperty(name = "dbaas.security.token.service-account.dir")
+	String tokenDir;
 
     private final AtomicReference<String> token = new AtomicReference<>();
 

@@ -68,8 +68,12 @@ public class K8sTokenWatcher implements Runnable {
             WatchKey key;
             while ((key = watchService.take()) != null) {
                 for (WatchEvent<?> event : key.pollEvents()) {
-                    String createdFilePath = (String) event.context();
-                    if (tokenFileLinkName.equals(createdFilePath)) {
+                    if (event.kind() != StandardWatchEventKinds.ENTRY_CREATE) {
+                        continue;
+                    }
+
+                    WatchEvent<Path> ev = (WatchEvent<Path>) event;
+                    if (tokenFileLinkName.equals(ev.context().getFileName().toString())) {
                         refreshToken();
                     }
                 }
