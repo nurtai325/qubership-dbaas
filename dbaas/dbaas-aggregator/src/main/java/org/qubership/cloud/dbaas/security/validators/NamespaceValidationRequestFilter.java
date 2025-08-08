@@ -39,7 +39,7 @@ public class NamespaceValidationRequestFilter implements ContainerRequestFilter 
         JsonString namespaceFromJwt = (JsonString) kubernetesClaims.get("namespace");
 
         if(!namespaceValidator.checkNamespaceIsolation(namespaceFromPath, namespaceFromJwt.getString())) {
-            requestContext.abortWith(Response.status(Response.Status.FORBIDDEN).build());
+            requestContext.abortWith(Response.status(Response.Status.FORBIDDEN.getStatusCode(), "Namespace from path and namespace from jwt token doesn't not match or aren't in the same composite structure").build());
             return;
         }
     }

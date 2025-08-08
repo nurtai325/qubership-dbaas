@@ -39,7 +39,7 @@ public class K8sTokenAuthFilter implements ClientRequestFilter {
 
 	@Override
 	public void filter(ClientRequestContext clientRequestContext) throws IOException {
-		clientRequestContext.getHeaders().add(HttpHeaders.AUTHORIZATION, "Bearer" + token.get());
+		clientRequestContext.getHeaders().add(HttpHeaders.AUTHORIZATION, "Bearer " + token.get());
 	}
 
     @Shutdown
