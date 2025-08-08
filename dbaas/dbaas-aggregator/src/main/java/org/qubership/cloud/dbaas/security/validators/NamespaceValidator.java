@@ -6,7 +6,6 @@ import jakarta.inject.Inject;
 import jakarta.json.JsonString;
 import jakarta.ws.rs.core.SecurityContext;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.qubership.cloud.dbaas.entity.pg.composite.CompositeStructure;
 import org.qubership.cloud.dbaas.service.composite.CompositeNamespaceService;
 
@@ -17,10 +16,6 @@ import java.util.Optional;
 @RequestScoped
 @Slf4j
 public class NamespaceValidator {
-    @Inject
-    @ConfigProperty(name = "cloud.microservice.composite.baseline")
-    String thisBaseline;
-
     @Inject
     CompositeNamespaceService compositeNamespaceService;
 
