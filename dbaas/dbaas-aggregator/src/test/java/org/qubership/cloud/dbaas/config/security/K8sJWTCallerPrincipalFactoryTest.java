@@ -10,11 +10,13 @@ import org.jose4j.jwt.JwtClaims;
 import org.jose4j.jwt.NumericDate;
 import org.jose4j.lang.JoseException;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.qubership.cloud.dbaas.TestJwtUtils;
 import org.qubership.cloud.dbaas.dto.oidc.OidcConfig;
 import org.qubership.cloud.dbaas.rest.K8sOidcRestClient;
 
@@ -25,26 +27,22 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class K8sJWTCallerPrincipalFactoryTest {
-    private static final String jwtIssuer = "https://kubernetes.default.svc.cluster.local";
-    private static final String jwksEndpoint = "https://kubernetes.default.svc.cluster.local/openid/v1/jwks";
-    private static final String dbaasJwtAudience = "dbaas";
-
     @Mock
     K8sOidcRestClient restClient;
-
     K8sJWTCallerPrincipalFactory parser;
 
-    private RsaJsonWebKey rsaJsonWebKey;
+    TestJwtUtils jwtUtils;
+
+    public K8sJWTCallerPrincipalFactoryTest() throws JoseException {
+        jwtUtils = new TestJwtUtils();
+    }
 
     @BeforeEach
     void setUp() throws Exception {
-        rsaJsonWebKey = RsaJwkGenerator.generateJwk(2048);
-        rsaJsonWebKey.setKeyId("k1");
+        when(restClient.getOidcConfiguration(jwtUtils.getJwtIssuer())).thenReturn(new OidcConfig(jwtUtils.getJwksEndpoint()));
+        when(restClient.getJwks(jwtUtils.getJwksEndpoint())).thenReturn(jwtUtils.getJwks());
 
-        when(restClient.getOidcConfiguration(jwtIssuer)).thenReturn(new OidcConfig(jwksEndpoint));
-        when(restClient.getJwks(jwksEndpoint)).thenReturn(new JsonWebKeySet(rsaJsonWebKey).toJson());
-
-        parser = new K8sJWTCallerPrincipalFactory(jwtIssuer, dbaasJwtAudience, restClient);
+        parser = new K8sJWTCallerPrincipalFactory(jwtUtils.getJwtIssuer(), jwtUtils.getDbaasJwtAudience(), restClient);
     }
 
     @AfterEach
@@ -54,23 +52,23 @@ class K8sJWTCallerPrincipalFactoryTest {
     @Test
     void parse() {
         JwtClaims validClaims = new JwtClaims();
-        validClaims.setIssuer(jwtIssuer);
-        validClaims.setAudience(dbaasJwtAudience);
+        validClaims.setIssuer(jwtUtils.getJwtIssuer());
+        validClaims.setAudience(jwtUtils.getDbaasJwtAudience());
         validClaims.setSubject("some-service");
         validClaims.setExpirationTimeMinutesInTheFuture(10);
         validClaims.setGeneratedJwtId();
         validClaims.setIssuedAtToNow();
 
         assertDoesNotThrow(() -> {
-            parser.parse(newJwt(validClaims, false), null);
+            parser.parse(jwtUtils.newJwt(validClaims, false), null);
         });
 
         assertThrows(ParseException.class, () -> {
-            parser.parse(newJwt(validClaims, true), null);
+            parser.parse(jwtUtils.newJwt(validClaims, true), null);
         });
 
         assertThrows(ParseException.class, () -> {
-            String jwt = newJwt(validClaims, false);
+            String jwt = jwtUtils.newJwt(validClaims, false);
             jwt += "tamperWithSignature";
             parser.parse(jwt, null);
         });
@@ -78,25 +76,25 @@ class K8sJWTCallerPrincipalFactoryTest {
         assertThrows(ParseException.class, () -> {
             JwtClaims invalidClaims = new JwtClaims();
             validClaims.setIssuer("someOtherIssuer");
-            validClaims.setAudience(dbaasJwtAudience);
+            validClaims.setAudience(jwtUtils.getDbaasJwtAudience());
             validClaims.setSubject("some-service");
             validClaims.setExpirationTimeMinutesInTheFuture(10);
             validClaims.setGeneratedJwtId();
             validClaims.setIssuedAtToNow();
 
-            parser.parse(newJwt(invalidClaims, false), null);
+            parser.parse(jwtUtils.newJwt(invalidClaims, false), null);
         });
 
         assertThrows(ParseException.class, () -> {
             JwtClaims invalidClaims = new JwtClaims();
-            validClaims.setIssuer(jwtIssuer);
+            validClaims.setIssuer(jwtUtils.getJwtIssuer());
             validClaims.setAudience("someOtherAudience");
             validClaims.setSubject("some-service");
             validClaims.setExpirationTimeMinutesInTheFuture(10);
             validClaims.setGeneratedJwtId();
             validClaims.setIssuedAtToNow();
 
-            parser.parse(newJwt(invalidClaims, false), null);
+            parser.parse(jwtUtils.newJwt(invalidClaims, false), null);
         });
 
         assertThrows(ParseException.class, () -> {
@@ -104,33 +102,14 @@ class K8sJWTCallerPrincipalFactoryTest {
             invalidExpirationDate.addSeconds(-100);
 
             JwtClaims invalidClaims = new JwtClaims();
-            validClaims.setIssuer(jwtIssuer);
-            validClaims.setAudience(dbaasJwtAudience);
+            validClaims.setIssuer(jwtUtils.getJwtIssuer());
+            validClaims.setAudience(jwtUtils.getDbaasJwtAudience());
             validClaims.setSubject("some-service");
             validClaims.setExpirationTime(invalidExpirationDate);
             validClaims.setGeneratedJwtId();
             validClaims.setIssuedAtToNow();
 
-            parser.parse(newJwt(invalidClaims, false), null);
+            parser.parse(jwtUtils.newJwt(invalidClaims, false), null);
         });
-    }
-
-    private String newJwt(JwtClaims claims, boolean differentKey) throws JoseException {
-        JsonWebSignature jws = new JsonWebSignature();
-
-        RsaJsonWebKey key;
-        if (differentKey) {
-            key = RsaJwkGenerator.generateJwk(2048);
-            key.setKeyId("k1");
-        } else {
-            key = rsaJsonWebKey;
-        }
-
-        jws.setPayload(claims.toJson());
-        jws.setKey(key.getPrivateKey());
-        jws.setKeyIdHeaderValue(key.getKeyId());
-        jws.setAlgorithmHeaderValue(AlgorithmIdentifiers.RSA_USING_SHA256);
-
-        return jws.getCompactSerialization();
     }
 }
