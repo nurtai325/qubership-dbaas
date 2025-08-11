@@ -75,6 +75,9 @@ public class NamespaceValidator {
             return false;
         }
 
+        if (compositeStructure.get().getNamespaces().contains(namespace1)) {
+        } else {
+        }
         return compositeStructure.get().getNamespaces().contains(namespace1);
     }
 }

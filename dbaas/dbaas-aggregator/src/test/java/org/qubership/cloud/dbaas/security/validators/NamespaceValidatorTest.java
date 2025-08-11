@@ -38,6 +38,7 @@ class NamespaceValidatorTest {
 
     @BeforeEach
     void setUp() {
+        namespaceValidator.namespaceIsolationEnabled = true;
     }
 
     @AfterEach
@@ -46,8 +47,6 @@ class NamespaceValidatorTest {
 
     @Test
     void checkNamespaceIsolation() {
-        namespaceValidator.thisBaseline = defaultBaseLine;
-
         Set<String> namespaces = Set.of(defaultNamespace, otherNamespaceInComposite);
         CompositeStructure defaultCompositeStructure = new CompositeStructure(defaultBaseLine, namespaces);
 
@@ -67,8 +66,6 @@ class NamespaceValidatorTest {
 
     @Test
     void checkNamespaceFromClassifier() {
-        namespaceValidator.thisBaseline = defaultBaseLine;
-
         Set<String> namespaces = Set.of(defaultNamespace, otherNamespaceInComposite);
         CompositeStructure defaultCompositeStructure = new CompositeStructure(defaultBaseLine, namespaces);
 
