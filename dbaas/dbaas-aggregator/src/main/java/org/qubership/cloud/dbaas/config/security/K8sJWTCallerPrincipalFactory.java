@@ -14,7 +14,6 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jose4j.jwk.JsonWebKey;
 import org.jose4j.jwk.JsonWebKeySet;
 import org.jose4j.jws.JsonWebSignature;
-import org.jose4j.jwt.JwtClaims;
 import org.jose4j.jwt.consumer.InvalidJwtException;
 import org.jose4j.jwt.consumer.JwtConsumer;
 import org.jose4j.jwt.consumer.JwtConsumerBuilder;
@@ -22,7 +21,6 @@ import org.jose4j.jwt.consumer.JwtContext;
 import org.jose4j.lang.JoseException;
 import org.qubership.cloud.dbaas.rest.K8sOidcRestClient;
 
-import java.security.Key;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -34,19 +32,14 @@ import java.util.concurrent.atomic.AtomicReference;
 @Priority(1)
 @Slf4j
 public class K8sJWTCallerPrincipalFactory extends JWTCallerPrincipalFactory {
-    private final Object lock = new Object();
-
-    private final K8sOidcRestClient k8sOidcRestClient;
-
-    private final String jwtJwksEndpoint;
-
-    private final JwtConsumer jwtClaimsParser;
-
-    private final RetryPolicy<Object> retryPolicy = new RetryPolicy<>()
+    private static final RetryPolicy<Object> retryPolicy = new RetryPolicy<>()
             .withMaxRetries(5)
             .withBackoff(500, Duration.ofSeconds(60).toMillis(), ChronoUnit.MILLIS);
-
-    private final AtomicReference<List<JsonWebKey>> jwksRef = new AtomicReference<>(new ArrayList<>());
+    private final Object lock = new Object();
+    private final K8sOidcRestClient k8sOidcRestClient;
+    private final String jwtJwksEndpoint;
+    private final JwtConsumer jwtClaimsParser;
+    private final AtomicReference<List<JsonWebKey>> jwksCache = new AtomicReference<>(new ArrayList<>());
 
     public K8sJWTCallerPrincipalFactory(@ConfigProperty(name = "dbaas.security.jwt.oidc-provider-url") String jwtIssuer,
                                         @ConfigProperty(name = "dbaas.security.jwt.audience") String jwtAudience,
@@ -65,79 +58,73 @@ public class K8sJWTCallerPrincipalFactory extends JWTCallerPrincipalFactory {
 
         jwtJwksEndpoint = k8sOidcRestClient.getOidcConfiguration(jwtIssuer).getJwks_uri();
 
-        refreshOrFindJwks(null);
+        refreshJwksCache();
     }
 
     @Override
     public JWTCallerPrincipal parse(String token, JWTAuthContextInfo authContextInfo) throws ParseException {
         try {
             JwtContext jwtContext = jwtClaimsParser.process(token);
-            JwtClaims claims = jwtContext.getJwtClaims();
 
-            String keyId = jwtContext.getJoseObjects().getFirst().getKeyIdHeaderValue();
-            JsonWebKey jsonWebKey = getJwk(keyId);
-
-            if (jsonWebKey == null) {
-                throw new ParseException("jwk not found");
-            }
-
-            if (!verifySignature(token, jsonWebKey.getKey())) {
+            if (!verifySignature(token, jwtContext)) {
                 throw new ParseException("invalid jwt signature");
             }
 
-            return new DefaultJWTCallerPrincipal(claims);
+            return new DefaultJWTCallerPrincipal(jwtContext.getJwtClaims());
         } catch (InvalidJwtException | JoseException e) {
             throw new ParseException(e.getMessage());
         }
     }
 
-    private boolean verifySignature(String token, Key key) throws JoseException {
+    private boolean verifySignature(String token, JwtContext jwtContext) throws JoseException, ParseException {
+        String keyId = jwtContext.getJoseObjects().getFirst().getKeyIdHeaderValue();
+        JsonWebKey jsonWebKey = getJwk(keyId);
+
+        if (jsonWebKey == null) {
+            throw new ParseException("jwk not found");
+        }
+
         JsonWebSignature jws = new JsonWebSignature();
 
         jws.setCompactSerialization(token);
-        jws.setKey(key);
+        jws.setKey(jsonWebKey.getKey());
 
         return jws.verifySignature();
     }
 
-    private JsonWebKey refreshOrFindJwks(String keyId) {
-        synchronized (lock) {
-            if (keyId != null && !keyId.isEmpty()) {
-                JsonWebKey jwk = findJwkFromJwks(keyId);
-                if (jwk != null) {
-                    return jwk;
-                }
-            }
-
-            try {
-                Failsafe.with(retryPolicy).run(() -> {
-                    String rawJwks = (k8sOidcRestClient.getJwks(jwtJwksEndpoint));
-                    jwksRef.set(new JsonWebKeySet(rawJwks).getJsonWebKeys());
-                });
-            } catch (TimeoutExceededException e) {
-                log.error("Getting Json web keys from kubernetes jwks endpoint %s failed".formatted(jwtJwksEndpoint), e);
-            }
-
-            return null;
+    private void refreshJwksCache() {
+        try {
+            Failsafe.with(retryPolicy).run(() -> {
+                String rawJwks = (k8sOidcRestClient.getJwks(jwtJwksEndpoint));
+                jwksCache.set(new JsonWebKeySet(rawJwks).getJsonWebKeys());
+            });
+        } catch (TimeoutExceededException e) {
+            log.error("Getting Json web keys from kubernetes jwks endpoint %s failed".formatted(jwtJwksEndpoint), e);
         }
     }
 
     private JsonWebKey getJwk(String keyId) throws JoseException {
-        JsonWebKey jwk = findJwkFromJwks(keyId);
+        JsonWebKey jwk = getJwksFromCache(keyId);
         if (jwk != null) {
             return jwk;
         }
 
-        jwk = refreshOrFindJwks(keyId);
-        if (jwk != null) {
-            return jwk;
+        synchronized (lock) {
+            if (keyId != null && !keyId.isEmpty()) {
+                JsonWebKey jwksFromCache = getJwksFromCache(keyId);
+                if (jwksFromCache != null) {
+                    return jwksFromCache;
+                }
+            }
+
+            refreshJwksCache();
         }
 
-        return findJwkFromJwks(keyId);
+        return getJwksFromCache(keyId);
     }
 
-    private JsonWebKey findJwkFromJwks(String keyId) {
-        List<JsonWebKey> jwks = jwksRef.get();
+    private JsonWebKey getJwksFromCache(String keyId) {
+        List<JsonWebKey> jwks = jwksCache.get();
         for (JsonWebKey jwk : jwks) {
             if (keyId.equals(jwk.getKeyId())) {
                 return jwk;
@@ -146,6 +133,7 @@ public class K8sJWTCallerPrincipalFactory extends JWTCallerPrincipalFactory {
         return null;
     }
 
+    // observing startup event for bean to be created on app start so we catch errors early
     void onStartUp(@Observes StartupEvent event) {
     }
 }

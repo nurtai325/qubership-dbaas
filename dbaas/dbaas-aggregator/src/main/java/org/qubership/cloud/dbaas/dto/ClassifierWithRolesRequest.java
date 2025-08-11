@@ -5,9 +5,10 @@ import jakarta.enterprise.inject.spi.CDI;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonString;
 import jakarta.ws.rs.core.SecurityContext;
-import org.qubership.cloud.dbaas.dto.v3.UserRolesServices;
-import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import lombok.Data;
+import org.apache.commons.lang3.StringUtils;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.qubership.cloud.dbaas.dto.v3.UserRolesServices;
 
 import java.security.Principal;
 import java.util.Map;
@@ -24,21 +25,21 @@ public class ClassifierWithRolesRequest implements UserRolesServices {
     private String userRole;
 
     public String getOriginService() {
-        if(originService != null && !originService.isEmpty()) {
+        if (StringUtils.isNotEmpty(originService)) {
             return originService;
         }
 
         SecurityContext securityContext = CDI.current().select(SecurityContext.class).get();
         Principal defaultPrincipal = securityContext.getUserPrincipal();
 
-        if(!(defaultPrincipal instanceof DefaultJWTCallerPrincipal principal)) {
+        if (!(defaultPrincipal instanceof DefaultJWTCallerPrincipal principal)) {
             return originService;
         }
 
         Map<String, Object> kubernetesClaims = principal.getClaim("kubernetes.io");
 
         JsonObject serviceAccount = (JsonObject) kubernetesClaims.get("serviceaccount");
-        JsonString serviceAccountName = (JsonString)  serviceAccount.get("name");
+        JsonString serviceAccountName = (JsonString) serviceAccount.get("name");
 
         return serviceAccountName.getString();
     }

@@ -1,14 +1,31 @@
 package org.qubership.cloud.dbaas.controller.v3;
 
+import jakarta.annotation.security.RolesAllowed;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
+import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.flywaydb.core.internal.util.StringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.qubership.cloud.dbaas.dto.Source;
+import org.qubership.cloud.dbaas.dto.userrestore.RestoreUsersRequest;
+import org.qubership.cloud.dbaas.dto.userrestore.RestoreUsersResponse;
+import org.qubership.cloud.dbaas.dto.userrestore.SuccessfulRestoreUsersResponse;
 import org.qubership.cloud.dbaas.dto.v3.GetOrCreateUserRequest;
 import org.qubership.cloud.dbaas.dto.v3.GetOrCreateUserResponse;
-import org.qubership.cloud.dbaas.dto.userrestore.RestoreUsersRequest;
 import org.qubership.cloud.dbaas.dto.v3.UserOperationRequest;
 import org.qubership.cloud.dbaas.entity.pg.DatabaseRegistry;
 import org.qubership.cloud.dbaas.entity.pg.DatabaseUser;
-import org.qubership.cloud.dbaas.dto.Source;
-import org.qubership.cloud.dbaas.dto.userrestore.SuccessfulRestoreUsersResponse;
-import org.qubership.cloud.dbaas.dto.userrestore.RestoreUsersResponse;
 import org.qubership.cloud.dbaas.exceptions.DbNotFoundException;
 import org.qubership.cloud.dbaas.exceptions.InvalidClassifierException;
 import org.qubership.cloud.dbaas.exceptions.UserDeletionException;
@@ -17,32 +34,14 @@ import org.qubership.cloud.dbaas.security.validators.NamespaceValidator;
 import org.qubership.cloud.dbaas.service.AggregatedDatabaseAdministrationService;
 import org.qubership.cloud.dbaas.service.DBaaService;
 import org.qubership.cloud.dbaas.service.UserService;
-import org.eclipse.microprofile.openapi.annotations.Operation;
-import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
-import org.eclipse.microprofile.openapi.annotations.media.Content;
-import org.eclipse.microprofile.openapi.annotations.media.Schema;
-import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
-import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
-import org.eclipse.microprofile.openapi.annotations.tags.Tag;
-import jakarta.annotation.security.RolesAllowed;
-import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
-import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
-import lombok.extern.slf4j.Slf4j;
-
-import org.apache.commons.lang3.ObjectUtils;
-import org.flywaydb.core.internal.util.StringUtils;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
 import java.util.Optional;
 
-import static org.qubership.cloud.dbaas.Constants.DB_CLIENT;
-import static org.qubership.cloud.dbaas.DbaasApiPath.USERS_PATH_V3;
 import static jakarta.ws.rs.core.Response.Status.BAD_REQUEST;
 import static jakarta.ws.rs.core.Response.Status.CREATED;
+import static org.qubership.cloud.dbaas.Constants.DB_CLIENT;
+import static org.qubership.cloud.dbaas.DbaasApiPath.USERS_PATH_V3;
 
 @Slf4j
 @Path(USERS_PATH_V3)
@@ -53,13 +52,11 @@ import static jakarta.ws.rs.core.Response.Status.CREATED;
 public class DatabaseUsersControllerV3 {
 
     @Inject
+    NamespaceValidator namespaceValidator;
+    @Inject
     private DBaaService dBaaService;
-
     @Inject
     private UserService userService;
-
-    @Inject
-    NamespaceValidator namespaceValidator;
 
     @Operation(summary = "V3. Get or create user",
             description = "The API allows to get or create specific user for database.")
@@ -72,7 +69,7 @@ public class DatabaseUsersControllerV3 {
     @PUT
     @Transactional
     public Response getOrCreateUser(@Parameter(description = "Contains classifier and information about user", required = true)
-                                            GetOrCreateUserRequest getOrCreateUserRequest) {
+                                    GetOrCreateUserRequest getOrCreateUserRequest) {
         log.info("Get request to get or create database user. Request body {}", getOrCreateUserRequest);
 
         if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(getOrCreateUserRequest.getClassifier(), namespaceValidator)) {
@@ -127,9 +124,8 @@ public class DatabaseUsersControllerV3 {
     @DELETE
     @Transactional
     public Response deleteUser(@Parameter(description = "Contains userId or classifier, logicalUserId and type field for user identification.", required = true)
-                                       UserOperationRequest deleteUserRequest) {
+                               UserOperationRequest deleteUserRequest) {
         log.info("Get request to delete database user. Request body {}", deleteUserRequest);
-
         if (!isUserOperationRequestValid(deleteUserRequest)) {
             log.error("Request body is not valid." +
                     "Delete user request must contains 'userId' field or 'classifier', 'logicalUserId' and 'type' fields.");
@@ -157,7 +153,7 @@ public class DatabaseUsersControllerV3 {
     @POST
     @Transactional
     public Response rotateUserPassword(@Parameter(description = "Contains userId or classifier, logicalUserId and type field for user identification.", required = true)
-                                               UserOperationRequest rotateUserPasswordRequest) {
+                                       UserOperationRequest rotateUserPasswordRequest) {
         log.info("Get request to rotate password for database user. Request body {}", rotateUserPasswordRequest);
 
         if (!isUserOperationRequestValid(rotateUserPasswordRequest)) {
@@ -185,7 +181,7 @@ public class DatabaseUsersControllerV3 {
     @POST
     @Transactional
     public Response restoreUser(@Parameter(description = "Contains classifier, user role and physical database type", required = true)
-                                             RestoreUsersRequest restoreUsersRequest) {
+                                RestoreUsersRequest restoreUsersRequest) {
         log.info("Get request to restore users");
 
         if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(restoreUsersRequest.getClassifier(), namespaceValidator)) {

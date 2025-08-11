@@ -1,19 +1,5 @@
 package org.qubership.cloud.dbaas.controller.v3;
 
-import org.qubership.cloud.dbaas.controller.abstact.AbstractDatabaseAdministrationController;
-import org.qubership.cloud.dbaas.dto.ClassifierWithRolesRequest;
-import org.qubership.cloud.dbaas.dto.Source;
-import org.qubership.cloud.dbaas.dto.role.Role;
-import org.qubership.cloud.dbaas.dto.v3.*;
-import org.qubership.cloud.dbaas.entity.pg.BgDomain;
-import org.qubership.cloud.dbaas.entity.pg.BgNamespace;
-import org.qubership.cloud.dbaas.entity.pg.Database;
-import org.qubership.cloud.dbaas.entity.pg.DatabaseRegistry;
-import org.qubership.cloud.dbaas.exceptions.NotFoundException;
-import org.qubership.cloud.dbaas.exceptions.*;
-import org.qubership.cloud.dbaas.monitoring.model.DatabasesInfo;
-import org.qubership.cloud.dbaas.security.validators.NamespaceValidator;
-import org.qubership.cloud.dbaas.service.*;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -31,6 +17,20 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.qubership.cloud.dbaas.controller.abstact.AbstractDatabaseAdministrationController;
+import org.qubership.cloud.dbaas.dto.ClassifierWithRolesRequest;
+import org.qubership.cloud.dbaas.dto.Source;
+import org.qubership.cloud.dbaas.dto.role.Role;
+import org.qubership.cloud.dbaas.dto.v3.*;
+import org.qubership.cloud.dbaas.entity.pg.BgDomain;
+import org.qubership.cloud.dbaas.entity.pg.BgNamespace;
+import org.qubership.cloud.dbaas.entity.pg.Database;
+import org.qubership.cloud.dbaas.entity.pg.DatabaseRegistry;
+import org.qubership.cloud.dbaas.exceptions.*;
+import org.qubership.cloud.dbaas.exceptions.NotFoundException;
+import org.qubership.cloud.dbaas.monitoring.model.DatabasesInfo;
+import org.qubership.cloud.dbaas.security.validators.NamespaceValidator;
+import org.qubership.cloud.dbaas.service.*;
 
 import java.util.*;
 
@@ -124,6 +124,7 @@ public class AggregatedDatabaseAdministrationControllerV3 extends AbstractDataba
         }
         return null;
     }
+
     @NotNull
     private String getActiveNamespaceFromDomain(BgDomain bgDomain) {
         Optional<BgNamespace> activeNamespace = bgDomain.getNamespaces().stream().filter(o -> ACTIVE_STATE.equals(o.getState())).findFirst();
@@ -255,7 +256,7 @@ public class AggregatedDatabaseAdministrationControllerV3 extends AbstractDataba
     @Deprecated
     @RolesAllowed(DB_CLIENT)
     public Response getDatabasesStatus(@Parameter(description = "Namespace for which to get the database statuses", required = true)
-                                           @PathParam(NAMESPACE_PARAMETER) String namespace) {
+                                       @PathParam(NAMESPACE_PARAMETER) String namespace) {
         log.info("Get databases statuses");
         return Response.ok(monitoringService.getDatabasesStatus()).build();
     }

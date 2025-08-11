@@ -1,7 +1,7 @@
 package org.qubership.cloud.dbaas.exceptions;
 
-import org.qubership.cloud.dbaas.dto.Source;
 import lombok.Getter;
+import org.qubership.cloud.dbaas.dto.Source;
 
 import java.util.Map;
 
@@ -13,6 +13,7 @@ public class InvalidClassifierException extends ValidationException {
 
     public static InvalidClassifierException withDefaultMsg(Map<String, Object> classifier) {
         return new InvalidClassifierException("Classifier doesn't contain all mandatory fields. " +
+                "If authenticating with token, namespace in classifier and in token must be equal or be in the same composite structure. " +
                 "Check that classifier has `microserviceName`, `scope`. If `scope` = `tenant`, classifier must contain `tenantId` property",
                 classifier, Source.builder().pointer("/classifier").build());
     }
