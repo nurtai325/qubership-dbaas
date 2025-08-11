@@ -1,7 +1,7 @@
 package org.qubership.cloud.dbaas.dto.v3;
 
 import io.smallrye.jwt.auth.principal.DefaultJWTCallerPrincipal;
-import jakarta.enterprise.inject.spi.CDI;
+import jakarta.inject.Inject;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonString;
 import jakarta.ws.rs.core.SecurityContext;
@@ -20,6 +20,8 @@ import java.util.Map;
 @Schema(description = "V3 Request model for adding database to DBaaS")
 @NoArgsConstructor
 public class DatabaseCreateRequestV3 extends AbstractDatabaseCreateRequest implements UserRolesServices {
+    @Inject
+    SecurityContext securityContext;
     @Schema(description = "Origin service which send request")
     private String originService;
     @Schema(description = "Indicates connection properties with which user role should be returned to a client")
@@ -42,13 +44,14 @@ public class DatabaseCreateRequestV3 extends AbstractDatabaseCreateRequest imple
     public String getOriginService() {
         if (StringUtils.isNotEmpty(originService)) {
             return originService;
+        } else if (securityContext == null) {
+            return "";
         }
 
-        SecurityContext securityContext = CDI.current().select(SecurityContext.class).get();
         Principal defaultPrincipal = securityContext.getUserPrincipal();
 
         if (!(defaultPrincipal instanceof DefaultJWTCallerPrincipal principal)) {
-            return originService;
+            return "";
         }
 
         Map<String, Object> kubernetesClaims = principal.getClaim("kubernetes.io");
@@ -56,6 +59,8 @@ public class DatabaseCreateRequestV3 extends AbstractDatabaseCreateRequest imple
         JsonObject serviceAccount = (JsonObject) kubernetesClaims.get("serviceaccount");
         JsonString serviceAccountName = (JsonString) serviceAccount.get("name");
 
-        return serviceAccountName.getString();
+        originService = serviceAccountName.getString();
+
+        return originService;
     }
 }

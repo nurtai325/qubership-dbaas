@@ -10,15 +10,19 @@ import org.jose4j.jws.JsonWebSignature;
 import org.jose4j.jwt.JwtClaims;
 import org.jose4j.lang.JoseException;
 
+import java.util.Collections;
+import java.util.Map;
+
 @Singleton
 public class TestJwtUtils {
     @Getter
-    private  final String jwtIssuer = "https://kubernetes.default.svc.cluster.local";
+    final String defaultNamespace = "default";
     @Getter
-    private  final String jwksEndpoint = "https://kubernetes.default.svc.cluster.local/openid/v1/jwks";
+    private final String jwtIssuer = "https://kubernetes.default.svc.cluster.local";
     @Getter
-    private  final String dbaasJwtAudience = "dbaas";
-
+    private final String jwksEndpoint = "https://kubernetes.default.svc.cluster.local/openid/v1/jwks";
+    @Getter
+    private final String dbaasJwtAudience = "dbaas";
     @Getter
     private final String jwks;
     private final RsaJsonWebKey rsaJsonWebKey;
@@ -48,7 +52,7 @@ public class TestJwtUtils {
         return jws.getCompactSerialization();
     }
 
-    public String newDefaultClaimsJwt() throws JoseException {
+    public String newDefaultClaimsJwt(String namespace) throws JoseException {
         JwtClaims validClaims = new JwtClaims();
         validClaims.setIssuer(jwtIssuer);
         validClaims.setAudience(dbaasJwtAudience);
@@ -56,6 +60,7 @@ public class TestJwtUtils {
         validClaims.setExpirationTimeMinutesInTheFuture(10);
         validClaims.setGeneratedJwtId();
         validClaims.setIssuedAtToNow();
+        validClaims.setClaim("kubernetes.io", Map.of("namespace", namespace, "serviceaccount", Collections.singletonMap("name", "default")));
 
         return newJwt(validClaims, false);
     }
