@@ -28,8 +28,7 @@ public class K8sOidcRestClient {
 
     // TODO: use cert and use token should have priority over platform
     public K8sOidcRestClient(@ConfigProperty(name = "dbaas.security.jwt.jwks.use-certificate") boolean useCertificate,
-                             @ConfigProperty(name = "dbaas.security.jwt.jwks.use-token") boolean useToken)
-            throws Exception {
+                             @ConfigProperty(name = "dbaas.security.jwt.jwks.use-token") boolean useToken) throws IOException {
         log.debug("Started creating K8sOidcRestClient bean");
 
         Builder builder = new OkHttpClient.Builder();
