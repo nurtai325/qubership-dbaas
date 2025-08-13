@@ -34,6 +34,7 @@ public class DbaasAdapterRESTClientFactory {
 
     public DbaasAdapter createDbaasAdapterClientV2(String username, String password, String adapterAddress, String type,
                                                    String identifier, AdapterActionTrackerClient tracker, ApiVersion apiVersions) {
+        // TODO: new umbrella rest client
         BasicAuthFilter authFilter = new BasicAuthFilter(username, password);
         DbaasAdapterRestClientV2 restClient = RestClientBuilder.newBuilder().baseUri(URI.create(adapterAddress))
                 .register(authFilter)

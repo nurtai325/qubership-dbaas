@@ -18,26 +18,23 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.cert.X509Certificate;
+import java.util.Optional;
 
 @ApplicationScoped
 @Slf4j
 public class K8sOidcRestClient {
-    private final OkHttpClient client;
     @ConfigProperty(name = "dbaas.security.token.service-account.cert-path")
     String caCertPath;
 
-    // TODO: use cert and use token should have priority over platform
-    public K8sOidcRestClient(@ConfigProperty(name = "dbaas.security.jwt.jwks.use-certificate") boolean useCertificate,
-                             @ConfigProperty(name = "dbaas.security.jwt.jwks.use-token") boolean useToken) throws IOException {
+    private final OkHttpClient client;
+
+    public K8sOidcRestClient(@ConfigProperty(name = "dbaas.security.k8s.jwks.secure") boolean isKubernetesIdpSecure) throws IOException {
         log.debug("Started creating K8sOidcRestClient bean");
 
         Builder builder = new OkHttpClient.Builder();
 
-        if (useCertificate) {
+        if (isKubernetesIdpSecure) {
             setSslSocketFactory(builder);
-        }
-
-        if (useToken) {
             builder.addInterceptor(new K8sTokenInterceptor());
         }
 

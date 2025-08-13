@@ -25,6 +25,7 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
 @ApplicationScoped
@@ -35,11 +36,12 @@ public class K8sJWTCallerPrincipalFactory extends JWTCallerPrincipalFactory {
     private static final RetryPolicy<Object> retryPolicy = new RetryPolicy<>()
             .withMaxRetries(5)
             .withBackoff(500, Duration.ofSeconds(60).toMillis(), ChronoUnit.MILLIS);
+
     private final Object lock = new Object();
     private final K8sOidcRestClient k8sOidcRestClient;
     private final String jwtJwksEndpoint;
     private final JwtConsumer jwtClaimsParser;
-    private final AtomicReference<List<JsonWebKey>> jwksCache = new AtomicReference<>(new ArrayList<>());
+    private volatile List<JsonWebKey> jwksCache;
 
     public K8sJWTCallerPrincipalFactory(@ConfigProperty(name = "dbaas.security.jwt.oidc-provider-url") String jwtIssuer,
                                         @ConfigProperty(name = "dbaas.security.jwt.audience") String jwtAudience,
@@ -96,25 +98,23 @@ public class K8sJWTCallerPrincipalFactory extends JWTCallerPrincipalFactory {
         try {
             Failsafe.with(retryPolicy).run(() -> {
                 String rawJwks = (k8sOidcRestClient.getJwks(jwtJwksEndpoint));
-                jwksCache.set(new JsonWebKeySet(rawJwks).getJsonWebKeys());
+                jwksCache = new JsonWebKeySet(rawJwks).getJsonWebKeys();
             });
         } catch (TimeoutExceededException e) {
             log.error("Getting Json web keys from kubernetes jwks endpoint %s failed".formatted(jwtJwksEndpoint), e);
         }
     }
 
-    private JsonWebKey getJwk(String keyId) throws JoseException {
+    private JsonWebKey getJwk(String keyId) {
         JsonWebKey jwk = getJwksFromCache(keyId);
         if (jwk != null) {
             return jwk;
         }
 
         synchronized (lock) {
-            if (keyId != null && !keyId.isEmpty()) {
-                JsonWebKey jwksFromCache = getJwksFromCache(keyId);
-                if (jwksFromCache != null) {
-                    return jwksFromCache;
-                }
+            JsonWebKey jwksFromCache = getJwksFromCache(keyId);
+            if (jwksFromCache != null) {
+                return jwksFromCache;
             }
 
             refreshJwksCache();
@@ -124,7 +124,7 @@ public class K8sJWTCallerPrincipalFactory extends JWTCallerPrincipalFactory {
     }
 
     private JsonWebKey getJwksFromCache(String keyId) {
-        List<JsonWebKey> jwks = jwksCache.get();
+        List<JsonWebKey> jwks = jwksCache;
         for (JsonWebKey jwk : jwks) {
             if (keyId.equals(jwk.getKeyId())) {
                 return jwk;

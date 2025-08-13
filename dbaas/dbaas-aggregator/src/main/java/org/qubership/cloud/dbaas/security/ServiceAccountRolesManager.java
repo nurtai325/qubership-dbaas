@@ -13,15 +13,15 @@ import java.util.List;
 import java.util.Map;
 
 @ApplicationScoped
-public class ServiceAccountRoles {
+public class ServiceAccountRolesManager {
     private final ArrayList<ServiceAccountWithRoles> serviceAccountsWithRoles = new ArrayList<>();
     @ConfigProperty(name = "roles.yaml")
     String rawYaml;
 
-    public ServiceAccountRoles() {
+    public ServiceAccountRolesManager() {
     }
 
-    public ServiceAccountRoles(String rawRolesSecret) {
+    public ServiceAccountRolesManager(String rawRolesSecret) {
         this.rawYaml = rawRolesSecret;
     }
 

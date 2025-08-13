@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
@@ -42,22 +43,11 @@ public class K8sTokenWatcher implements Runnable {
                 throw new RuntimeException("Failed to load Kubernetes service account token with path %s".formatted(tokenLocation));
             }
 
-            JwtConsumer jwtClaimsParser = new JwtConsumerBuilder()
-                    .setSkipDefaultAudienceValidation()
-                    .setSkipSignatureVerification()
-                    .setRequireExpirationTime()
-                    .setRequireIssuedAt()
-                    .build();
-            JwtClaims claims = jwtClaimsParser.processToClaims(tokenCache.get());
-
-            long refreshRateSeconds = claims.getExpirationTime().getValue() - claims.getIssuedAt().getValue();
-            retryPolicy = retryPolicy.withMaxDuration(Duration.ofSeconds(refreshRateSeconds));
-
             watchService = FileSystems.getDefault().newWatchService();
 
             Path path = Paths.get(tokenDir);
             path.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
-        } catch (IOException | InterruptedException | InvalidJwtException | MalformedClaimException e) {
+        } catch (IOException | InterruptedException e) {
             log.error("Failed to create K8sTokenWatcher", e);
             throw new RuntimeException(e);
         }
@@ -103,11 +93,33 @@ public class K8sTokenWatcher implements Runnable {
             Failsafe.with(retryPolicy).run(() -> {
                 String tokenContents = Files.readString(tokenFile.toPath());
                 tokenCache.set(tokenContents);
+
+                Optional<Long> tokenRefreshSeconds = getTokenRefreshSeconds(tokenContents);
+                if (tokenRefreshSeconds.isPresent()) {
+                    retryPolicy = retryPolicy.withMaxDuration(Duration.ofSeconds(tokenRefreshSeconds.get()));
+                }
             });
             return true;
         } catch (TimeoutExceededException e) {
             log.error("Reading kubernetes service account token at path %s time out exceeded. Couldn't read token", e);
             return false;
+        }
+    }
+
+    private Optional<Long> getTokenRefreshSeconds(String jwtToken) {
+        try {
+            JwtConsumer jwtClaimsParser = new JwtConsumerBuilder()
+                    .setSkipDefaultAudienceValidation()
+                    .setSkipSignatureVerification()
+                    .setRequireExpirationTime()
+                    .setRequireIssuedAt()
+                    .build();
+            JwtClaims claims = jwtClaimsParser.processToClaims(tokenCache.get());
+
+            return Optional.of(claims.getExpirationTime().getValue() - claims.getIssuedAt().getValue());
+        } catch (InvalidJwtException | MalformedClaimException e) {
+            log.error("Kubernetes service account token is invalid", e);
+            return Optional.empty();
         }
     }
 }

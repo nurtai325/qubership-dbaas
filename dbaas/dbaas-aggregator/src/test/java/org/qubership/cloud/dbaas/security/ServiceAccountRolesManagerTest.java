@@ -10,22 +10,22 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
-class ServiceAccountRolesTest {
-    ServiceAccountRoles serviceAccountRoles;
+class ServiceAccountRolesManagerTest {
+    ServiceAccountRolesManager serviceAccountRolesManager;
 
     @BeforeEach
     void setUp() throws IOException {
         String rawRolesSecret = Files.readString(Path.of("./src/test/resources/" + "roles-secret.yaml"));
-        serviceAccountRoles = new ServiceAccountRoles(rawRolesSecret);
-        serviceAccountRoles.onStart(null);
+        serviceAccountRolesManager = new ServiceAccountRolesManager(rawRolesSecret);
+        serviceAccountRolesManager.onStart(null);
     }
 
     @Test
     void getRolesByServiceAccountName() {
-        List<String> roles0 = serviceAccountRoles.getRolesByServiceAccountName("service-account-1");
+        List<String> roles0 = serviceAccountRolesManager.getRolesByServiceAccountName("service-account-1");
         assertArrayEquals(new String[]{"NAMESPACE_CLEANER", "DB_CLIENT", "MIGRATION_CLIENT"}, roles0.toArray());
 
-        List<String> roles1 = serviceAccountRoles.getRolesByServiceAccountName("service-account-2");
+        List<String> roles1 = serviceAccountRolesManager.getRolesByServiceAccountName("service-account-2");
         assertArrayEquals(new String[]{"NAMESPACE_CLEANER", "MIGRATION_CLIENT"}, roles1.toArray());
     }
 }

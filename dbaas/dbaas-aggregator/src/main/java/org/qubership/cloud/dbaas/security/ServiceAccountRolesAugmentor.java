@@ -15,7 +15,7 @@ import java.util.List;
 @ApplicationScoped
 public class ServiceAccountRolesAugmentor implements SecurityIdentityAugmentor {
     @Inject
-    ServiceAccountRoles secretReader;
+    ServiceAccountRolesManager secretReader;
 
     @Override
     public Uni<SecurityIdentity> augment(SecurityIdentity identity, AuthenticationRequestContext context) {
