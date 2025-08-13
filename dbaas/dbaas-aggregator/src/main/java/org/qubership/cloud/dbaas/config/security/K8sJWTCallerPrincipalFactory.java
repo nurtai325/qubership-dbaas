@@ -23,10 +23,7 @@ import org.qubership.cloud.dbaas.rest.K8sOidcRestClient;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicReference;
 
 @ApplicationScoped
 @Alternative
@@ -45,8 +42,7 @@ public class K8sJWTCallerPrincipalFactory extends JWTCallerPrincipalFactory {
 
     public K8sJWTCallerPrincipalFactory(@ConfigProperty(name = "dbaas.security.jwt.oidc-provider-url") String jwtIssuer,
                                         @ConfigProperty(name = "dbaas.security.jwt.audience") String jwtAudience,
-                                        K8sOidcRestClient k8sOidcRestClient)
-            throws Exception {
+                                        K8sOidcRestClient k8sOidcRestClient) {
         this.k8sOidcRestClient = k8sOidcRestClient;
 
         jwtClaimsParser = new JwtConsumerBuilder()

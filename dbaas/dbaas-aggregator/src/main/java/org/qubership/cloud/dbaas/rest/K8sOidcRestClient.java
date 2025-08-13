@@ -18,15 +18,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.cert.X509Certificate;
-import java.util.Optional;
 
 @ApplicationScoped
 @Slf4j
 public class K8sOidcRestClient {
+    private final OkHttpClient client;
     @ConfigProperty(name = "dbaas.security.token.service-account.cert-path")
     String caCertPath;
-
-    private final OkHttpClient client;
 
     public K8sOidcRestClient(@ConfigProperty(name = "dbaas.security.k8s.jwks.secure") boolean isKubernetesIdpSecure) throws IOException {
         log.debug("Started creating K8sOidcRestClient bean");

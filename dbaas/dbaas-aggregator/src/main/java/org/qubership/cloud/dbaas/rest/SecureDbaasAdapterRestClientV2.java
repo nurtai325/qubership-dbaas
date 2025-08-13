@@ -12,7 +12,6 @@ import org.qubership.cloud.dbaas.monitoring.AdapterHealthStatus;
 import org.qubership.cloud.dbaas.security.filters.AuthFilterSelector;
 import org.qubership.cloud.dbaas.security.filters.BasicAuthFilter;
 import org.qubership.cloud.dbaas.security.filters.K8sTokenAuthFilter;
-import org.qubership.cloud.dbaas.service.VarArgsFunction;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -21,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 public class SecureDbaasAdapterRestClientV2 implements DbaasAdapterRestClientV2 {
     private final BasicAuthFilter basicAuthFilter;
@@ -39,18 +39,17 @@ public class SecureDbaasAdapterRestClientV2 implements DbaasAdapterRestClientV2 
         this.lastK8sAuthSetTime = new AtomicReference<>(Instant.now());
     }
 
-    private <R> R executeRequest(VarArgsFunction<R> func, Object... args) {
+    private <R> R executeRequest(final Supplier<R> supplier) {
         try {
             if (authFilterSelector.getAuthFilter() instanceof BasicAuthFilter && Duration.between(lastK8sAuthSetTime.get(), Instant.now()).toMinutes() >= 60) {
                 authFilterSelector.selectAuthFilter(k8sTokenAuthFilter);
                 lastK8sAuthSetTime.set(Instant.now());
             }
-
-            return func.apply(args);
+            return supplier.get();
         } catch (WebApplicationException e) {
             if (e.getResponse().getStatus() == Response.Status.UNAUTHORIZED.getStatusCode() && authFilterSelector.getAuthFilter() instanceof K8sTokenAuthFilter) {
                 authFilterSelector.selectAuthFilter(basicAuthFilter);
-                return func.apply(args);
+                return supplier.get();
             }
             throw e;
         }
@@ -58,131 +57,100 @@ public class SecureDbaasAdapterRestClientV2 implements DbaasAdapterRestClientV2 
 
     @Override
     public AdapterHealthStatus getHealth() {
-        return executeRequest(args -> restClient.getHealth());
+        return executeRequest(restClient::getHealth);
     }
 
     @Override
     public Response handshake(String type) {
-        return executeRequest(args -> restClient.handshake((String) args[0]), type);
+        return executeRequest(() -> restClient.handshake(type));
     }
 
     @Override
     public Map<String, Boolean> supports(String type) {
-        return executeRequest(args -> restClient.supports((String) args[0]), type);
+        return executeRequest(() -> restClient.supports(type));
     }
 
     @Override
-    public TrackedAction restoreBackup(String type, String backupId,
-                                       RestoreRequest restoreRequest) {
-        return executeRequest(args -> restClient.restoreBackup((String) args[0], (String) args[1], (RestoreRequest) args[2]),
-                type, backupId, restoreRequest);
+    public TrackedAction restoreBackup(String type, String backupId, RestoreRequest restoreRequest) {
+        return executeRequest(() -> restClient.restoreBackup(type, backupId, restoreRequest));
     }
 
     @Override
-    public TrackedAction restoreBackup(String type, String backupId,
-                                       boolean regenerateNames,
-                                       List<String> databases) {
-        return executeRequest(args -> restClient.restoreBackup((String) args[0], (String) args[1], (Boolean) args[2], (List<String>) args[3]),
-                type, backupId, regenerateNames, databases);
+    public TrackedAction restoreBackup(String type, String backupId, boolean regenerateNames, List<String> databases) {
+        return executeRequest(() -> restClient.restoreBackup(type, backupId, regenerateNames, databases));
     }
 
     @Override
-    public TrackedAction collectBackup(String type,
-                                       Boolean allowEviction,
-                                       String keep,
-                                       List<String> databases) {
-        return executeRequest(args -> restClient.collectBackup((String) args[0], (Boolean) args[1], (String) args[2], (List<String>) args[3]),
-                type, allowEviction, keep, databases);
+    public TrackedAction collectBackup(String type, Boolean allowEviction, String keep, List<String> databases) {
+        return executeRequest(() -> restClient.collectBackup(type, allowEviction, keep, databases));
     }
 
     @Override
     public TrackedAction trackBackup(String type, String action, String track) {
-        return executeRequest(args -> restClient.trackBackup((String) args[0], (String) args[1], (String) args[2]),
-                type, action, track);
+        return executeRequest(() -> restClient.trackBackup(type, action, track));
     }
 
     @Override
     public String deleteBackup(String type, String backupId) {
-        return executeRequest(args -> restClient.deleteBackup((String) args[0], (String) args[1]),
-                type, backupId);
+        return executeRequest(() -> restClient.deleteBackup(type, backupId));
     }
 
     @Override
     public Response dropResources(String type, List<DbResource> resources) {
-        return executeRequest(args -> restClient.dropResources((String) args[0], (List<DbResource>) args[1]),
-                type, resources);
+        return executeRequest(() -> restClient.dropResources(type, resources));
     }
 
     @Override
-    public EnsuredUser ensureUser(String type, String username,
-                                  UserEnsureRequest request) {
-        return executeRequest(args -> restClient.ensureUser((String) args[0], (String) args[1], (UserEnsureRequest) args[2]),
-                type, username, request);
+    public EnsuredUser ensureUser(String type, String username, UserEnsureRequest request) {
+        return executeRequest(() -> restClient.ensureUser(type, username, request));
     }
 
     @Override
-    public EnsuredUser ensureUser(String type, String username,
-                                  UserEnsureRequestV3 request) {
-        return executeRequest(args -> restClient.ensureUser((String) args[0], (String) args[1], (UserEnsureRequestV3) args[2]),
-                type, username, request);
+    public EnsuredUser ensureUser(String type, String username, UserEnsureRequestV3 request) {
+        return executeRequest(() -> restClient.ensureUser(type, username, request));
     }
 
     @Override
-    public EnsuredUser ensureUser(String type,
-                                  UserEnsureRequestV3 request) {
-        return executeRequest(args -> restClient.ensureUser((String) args[0], (UserEnsureRequestV3) args[1]),
-                type, request);
+    public EnsuredUser ensureUser(String type, UserEnsureRequestV3 request) {
+        return executeRequest(() -> restClient.ensureUser(type, request));
     }
 
     @Override
-    public EnsuredUser createUser(String type,
-                                  GetOrCreateUserAdapterRequest request) {
-        return executeRequest(args -> restClient.createUser((String) args[0], (GetOrCreateUserAdapterRequest) args[1]),
-                type, request);
+    public EnsuredUser createUser(String type, GetOrCreateUserAdapterRequest request) {
+        return executeRequest(() -> restClient.createUser(type, request));
     }
 
     @Override
-    public Response restorePassword(String type,
-                                    RestorePasswordsAdapterRequest request) {
-        return executeRequest(args -> restClient.restorePassword((String) args[0], (RestorePasswordsAdapterRequest) args[1]),
-                type, request);
+    public Response restorePassword(String type, RestorePasswordsAdapterRequest request) {
+        return executeRequest(() -> restClient.restorePassword(type, request));
     }
 
     @Override
-    public void changeMetaData(String type, String dbName,
-                               Map<String, Object> metadata) {
-        executeRequest(args -> {
-            restClient.changeMetaData((String) args[0], (String) args[1], (Map<String, Object>) args[2]);
+    public void changeMetaData(String type, String dbName, Map<String, Object> metadata) {
+        executeRequest(() -> {
+            restClient.changeMetaData(type, dbName, metadata);
             return null;
-        }, type, dbName, metadata);
+        });
     }
 
     @Override
-    public Map<String, DescribedDatabase> describeDatabases(String type,
-                                                            boolean connectionProperties,
-                                                            boolean resources,
-                                                            Collection<String> databases) {
-        return executeRequest(args -> restClient.describeDatabases((String) args[0], (Boolean) args[1], (Boolean) args[2], (Collection<String>) args[3]),
-                type, connectionProperties, resources, databases);
+    public Map<String, DescribedDatabase> describeDatabases(String type, boolean connectionProperties, boolean resources, Collection<String> databases) {
+        return executeRequest(() -> restClient.describeDatabases(type, connectionProperties, resources, databases));
     }
 
     @Override
     public Set<String> getDatabases(String type) {
-        return executeRequest(args -> restClient.getDatabases((String) args[0]), type);
+        return executeRequest(() -> restClient.getDatabases(type));
     }
 
     @Override
-    public CreatedDatabaseV3 createDatabase(String type,
-                                            AdapterDatabaseCreateRequest createRequest) {
-        return executeRequest(args -> restClient.createDatabase((String) args[0], (AdapterDatabaseCreateRequest) args[1]),
-                type, createRequest);
+    public CreatedDatabaseV3 createDatabase(String type, AdapterDatabaseCreateRequest createRequest) {
+        return executeRequest(() -> restClient.createDatabase(type, createRequest));
     }
 
     @Override
-    public String updateSettings(String type, String dbName,
-                                 UpdateSettingsAdapterRequest request) {
-        return executeRequest(args -> restClient.updateSettings((String) args[0], (String) args[1], (UpdateSettingsAdapterRequest) args[2]),
-                type, dbName, request);
+    public String updateSettings(String type, String dbName, UpdateSettingsAdapterRequest request) {
+        return executeRequest(() -> restClient.updateSettings(type, dbName, request));
     }
 
     @Override

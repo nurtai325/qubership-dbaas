@@ -6,7 +6,7 @@ import jakarta.ws.rs.client.ClientRequestFilter;
 import java.io.IOException;
 
 public class DynamicAuthFilter implements ClientRequestFilter, AuthFilterSelector {
-    private ClientRequestFilter authFilter;
+    private volatile ClientRequestFilter authFilter;
 
     public DynamicAuthFilter(ClientRequestFilter defaultAuthFilter) {
         this.authFilter = defaultAuthFilter;
