@@ -1,6 +1,7 @@
 package org.qubership.cloud.dbaas.security.interceptors;
 
 import io.quarkus.runtime.Shutdown;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.core.HttpHeaders;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Interceptor;
@@ -17,14 +18,22 @@ import java.util.concurrent.atomic.AtomicReference;
 public class K8sTokenInterceptor implements Interceptor {
     private final AtomicReference<String> token = new AtomicReference<>();
     private final Thread watcherThread;
-    @ConfigProperty(name = "dbaas.security.token.service-account.path")
+
+    @Inject
+    @ConfigProperty(name = "dbaas.security.k8s.jwt.enabled")
+    private boolean isJwtEnabled;
+
+    @Inject
+    @ConfigProperty(name = "dbaas.security.k8s.jwt.token.service-account.path")
     String tokenLocation;
-    @ConfigProperty(name = "dbaas.security.token.service-account.dir")
+
+    @Inject
+    @ConfigProperty(name = "dbaas.security.k8s.jwt.token.service-account.dir")
     String tokenDir;
 
     public K8sTokenInterceptor() {
         token.set("");
-        watcherThread = Thread.startVirtualThread(new K8sTokenWatcher(tokenDir, tokenLocation, token));
+        watcherThread = Thread.startVirtualThread(new K8sTokenWatcher(tokenDir, tokenLocation, token, isJwtEnabled));
     }
 
     public @NotNull Response intercept(Interceptor.Chain chain) throws IOException {

@@ -2,6 +2,7 @@ package org.qubership.cloud.dbaas.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
@@ -23,7 +24,9 @@ import java.security.cert.X509Certificate;
 @Slf4j
 public class K8sOidcRestClient {
     private final OkHttpClient client;
-    @ConfigProperty(name = "dbaas.security.token.service-account.cert-path")
+
+    @Inject
+    @ConfigProperty(name = "dbaas.security.k8s.jwt.token.service-account.cert-path")
     String caCertPath;
 
     public K8sOidcRestClient(@ConfigProperty(name = "dbaas.security.k8s.jwks.secure") boolean isKubernetesIdpSecure) throws IOException {

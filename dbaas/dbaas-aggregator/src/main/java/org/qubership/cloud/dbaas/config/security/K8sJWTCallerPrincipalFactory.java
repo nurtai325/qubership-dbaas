@@ -40,8 +40,8 @@ public class K8sJWTCallerPrincipalFactory extends JWTCallerPrincipalFactory {
     private final JwtConsumer jwtClaimsParser;
     private volatile List<JsonWebKey> jwksCache;
 
-    public K8sJWTCallerPrincipalFactory(@ConfigProperty(name = "dbaas.security.jwt.oidc-provider-url") String jwtIssuer,
-                                        @ConfigProperty(name = "dbaas.security.jwt.audience") String jwtAudience,
+    public K8sJWTCallerPrincipalFactory(@ConfigProperty(name = "dbaas.security.k8s.jwt.oidc-provider-url") String jwtIssuer,
+                                        @ConfigProperty(name = "dbaas.security.k8s.jwt.audience") String jwtAudience,
                                         K8sOidcRestClient k8sOidcRestClient) {
         this.k8sOidcRestClient = k8sOidcRestClient;
 

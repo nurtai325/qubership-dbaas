@@ -23,6 +23,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 public class SecureDbaasAdapterRestClientV2 implements DbaasAdapterRestClientV2 {
+    private final boolean isJwtEnabled;
+
     private final BasicAuthFilter basicAuthFilter;
     private final K8sTokenAuthFilter k8sTokenAuthFilter;
 
@@ -31,23 +33,24 @@ public class SecureDbaasAdapterRestClientV2 implements DbaasAdapterRestClientV2 
 
     private final AtomicReference<Instant> lastK8sAuthSetTime;
 
-    public SecureDbaasAdapterRestClientV2(DbaasAdapterRestClientV2 restClient, BasicAuthFilter basicAuthFilter, K8sTokenAuthFilter k8sTokenAuthFilter, AuthFilterSelector authFilterSelector) {
+    public SecureDbaasAdapterRestClientV2(DbaasAdapterRestClientV2 restClient, BasicAuthFilter basicAuthFilter, K8sTokenAuthFilter k8sTokenAuthFilter, AuthFilterSelector authFilterSelector, boolean isJwtEnabled) {
         this.restClient = restClient;
         this.basicAuthFilter = basicAuthFilter;
         this.k8sTokenAuthFilter = k8sTokenAuthFilter;
         this.authFilterSelector = authFilterSelector;
         this.lastK8sAuthSetTime = new AtomicReference<>(Instant.now());
+        this.isJwtEnabled = isJwtEnabled;
     }
 
     private <R> R executeRequest(final Supplier<R> supplier) {
         try {
-            if (authFilterSelector.getAuthFilter() instanceof BasicAuthFilter && Duration.between(lastK8sAuthSetTime.get(), Instant.now()).toMinutes() >= 60) {
+            if (isJwtEnabled && authFilterSelector.getAuthFilter() instanceof BasicAuthFilter && Duration.between(lastK8sAuthSetTime.get(), Instant.now()).toMinutes() >= 60) {
                 authFilterSelector.selectAuthFilter(k8sTokenAuthFilter);
                 lastK8sAuthSetTime.set(Instant.now());
             }
             return supplier.get();
         } catch (WebApplicationException e) {
-            if (e.getResponse().getStatus() == Response.Status.UNAUTHORIZED.getStatusCode() && authFilterSelector.getAuthFilter() instanceof K8sTokenAuthFilter) {
+            if (isJwtEnabled && e.getResponse().getStatus() == Response.Status.UNAUTHORIZED.getStatusCode() && authFilterSelector.getAuthFilter() instanceof K8sTokenAuthFilter) {
                 authFilterSelector.selectAuthFilter(basicAuthFilter);
                 return supplier.get();
             }

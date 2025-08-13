@@ -20,17 +20,23 @@ import static jakarta.ws.rs.Priorities.AUTHENTICATION;
 public class K8sTokenAuthFilter implements ClientRequestFilter {
     private final AtomicReference<String> token = new AtomicReference<>();
     private final Thread watcherThread;
+
     @Inject
-    @ConfigProperty(name = "dbaas.security.token.netcracker.path")
+    @ConfigProperty(name = "dbaas.security.k8s.jwt.enabled")
+    private boolean isJwtEnabled;
+
+    @Inject
+    @ConfigProperty(name = "dbaas.security.k8s.jwt.token.netcracker.path")
     private String tokenLocation;
+
     @Inject
-    @ConfigProperty(name = "dbaas.security.token.netcracker.dir")
+    @ConfigProperty(name = "dbaas.security.k8s.jwt.token.netcracker.dir")
     private String tokenDir;
 
     public K8sTokenAuthFilter() {
         token.set("");
 
-        watcherThread = Thread.startVirtualThread(new K8sTokenWatcher(tokenDir, tokenLocation, token));
+        watcherThread = Thread.startVirtualThread(new K8sTokenWatcher(tokenDir, tokenLocation, token, isJwtEnabled));
     }
 
     @Override

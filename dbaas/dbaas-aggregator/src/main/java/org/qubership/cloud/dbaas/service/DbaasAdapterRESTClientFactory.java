@@ -1,5 +1,6 @@
 package org.qubership.cloud.dbaas.service;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.qubership.cloud.dbaas.dto.v3.ApiVersion;
 import org.qubership.cloud.dbaas.monitoring.interceptor.TimeMeasurementManager;
 import org.qubership.cloud.dbaas.rest.SecureDbaasAdapterRestClientV2;
@@ -20,6 +21,10 @@ import java.util.concurrent.TimeUnit;
 
 @ApplicationScoped
 public class DbaasAdapterRESTClientFactory {
+    @Inject
+    @ConfigProperty(name = "dbaas.security.k8s.jwt.enabled")
+    private boolean isJwtEnabled;
+
     @Inject
     TimeMeasurementManager timeMeasurementManager;
 
@@ -48,7 +53,7 @@ public class DbaasAdapterRESTClientFactory {
                 .readTimeout(3, TimeUnit.MINUTES)
                 .build(DbaasAdapterRestClientV2.class);
 
-        SecureDbaasAdapterRestClientV2 secureRestClient = new SecureDbaasAdapterRestClientV2(restClient, basicAuthFilter, k8sTokenAuthFilter, dynamicAuthFilter);
+        SecureDbaasAdapterRestClientV2 secureRestClient = new SecureDbaasAdapterRestClientV2(restClient, basicAuthFilter, k8sTokenAuthFilter, dynamicAuthFilter, isJwtEnabled);
 
         return (DbaasAdapter) Proxy.newProxyInstance(DbaasAdapter.class.getClassLoader(), new Class[]{DbaasAdapter.class},
                 timeMeasurementManager.provideTimeMeasurementInvocationHandler(new DbaasAdapterRESTClientV2(adapterAddress, type, secureRestClient, identifier, tracker, apiVersions)));
