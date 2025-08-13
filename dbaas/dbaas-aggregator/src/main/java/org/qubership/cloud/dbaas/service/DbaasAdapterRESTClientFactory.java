@@ -2,6 +2,7 @@ package org.qubership.cloud.dbaas.service;
 
 import org.qubership.cloud.dbaas.dto.v3.ApiVersion;
 import org.qubership.cloud.dbaas.monitoring.interceptor.TimeMeasurementManager;
+import org.qubership.cloud.dbaas.rest.SecureDbaasAdapterRestClientV2;
 import org.qubership.cloud.dbaas.security.filters.BasicAuthFilter;
 import org.qubership.cloud.dbaas.rest.DbaasAdapterRestClient;
 import org.qubership.cloud.dbaas.rest.DbaasAdapterRestClientLoggingFilter;
@@ -10,6 +11,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
+import org.qubership.cloud.dbaas.security.filters.DynamicAuthFilter;
+import org.qubership.cloud.dbaas.security.filters.K8sTokenAuthFilter;
 
 import java.lang.reflect.Proxy;
 import java.net.URI;
@@ -34,16 +37,21 @@ public class DbaasAdapterRESTClientFactory {
 
     public DbaasAdapter createDbaasAdapterClientV2(String username, String password, String adapterAddress, String type,
                                                    String identifier, AdapterActionTrackerClient tracker, ApiVersion apiVersions) {
-        // TODO: new umbrella rest client
-        BasicAuthFilter authFilter = new BasicAuthFilter(username, password);
+        BasicAuthFilter basicAuthFilter = new BasicAuthFilter(username, password);
+        K8sTokenAuthFilter k8sTokenAuthFilter = new K8sTokenAuthFilter();
+        DynamicAuthFilter dynamicAuthFilter = new DynamicAuthFilter(k8sTokenAuthFilter);
+
         DbaasAdapterRestClientV2 restClient = RestClientBuilder.newBuilder().baseUri(URI.create(adapterAddress))
-                .register(authFilter)
+                .register(dynamicAuthFilter)
                 .register(new DbaasAdapterRestClientLoggingFilter())
                 .connectTimeout(3, TimeUnit.MINUTES)
                 .readTimeout(3, TimeUnit.MINUTES)
                 .build(DbaasAdapterRestClientV2.class);
+
+        SecureDbaasAdapterRestClientV2 secureRestClient = new SecureDbaasAdapterRestClientV2(restClient, basicAuthFilter, k8sTokenAuthFilter, dynamicAuthFilter);
+
         return (DbaasAdapter) Proxy.newProxyInstance(DbaasAdapter.class.getClassLoader(), new Class[]{DbaasAdapter.class},
-                timeMeasurementManager.provideTimeMeasurementInvocationHandler(new DbaasAdapterRESTClientV2(adapterAddress, type, restClient, identifier, tracker, apiVersions)));
+                timeMeasurementManager.provideTimeMeasurementInvocationHandler(new DbaasAdapterRESTClientV2(adapterAddress, type, secureRestClient, identifier, tracker, apiVersions)));
     }
 
 }
