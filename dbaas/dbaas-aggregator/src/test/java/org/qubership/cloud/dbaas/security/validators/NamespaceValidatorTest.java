@@ -69,7 +69,6 @@ class NamespaceValidatorTest {
         Set<String> namespaces = Set.of(defaultNamespace, otherNamespaceInComposite);
         CompositeStructure defaultCompositeStructure = new CompositeStructure(defaultBaseLine, namespaces);
 
-        when(compositeNamespaceService.getCompositeStructure(defaultBaseLine)).thenReturn(Optional.of(defaultCompositeStructure));
         when(compositeNamespaceService.getBaselineByNamespace(otherNamespaceInComposite)).thenReturn(Optional.of(defaultBaseLine));
         when(compositeNamespaceService.getBaselineByNamespace("someOtherNamespace")).thenReturn(Optional.empty());
 
