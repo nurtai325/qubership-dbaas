@@ -1,5 +1,7 @@
 package org.qubership.cloud.dbaas.security;
 
+import io.quarkus.security.credential.Credential;
+import io.quarkus.security.credential.PasswordCredential;
 import io.quarkus.security.identity.AuthenticationRequestContext;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.security.identity.SecurityIdentityAugmentor;
@@ -24,6 +26,13 @@ public class ServiceAccountRolesAugmentor implements SecurityIdentityAugmentor {
     public Uni<SecurityIdentity> augment(SecurityIdentity identity, AuthenticationRequestContext context) {
         if (identity.isAnonymous()) {
             return Uni.createFrom().item(identity);
+        }
+
+        // skip if basic auth
+        for (Credential cred : identity.getCredentials()) {
+            if (cred instanceof PasswordCredential) {
+                return Uni.createFrom().item(identity);
+            }
         }
 
         String principal = identity.getPrincipal().getName();
