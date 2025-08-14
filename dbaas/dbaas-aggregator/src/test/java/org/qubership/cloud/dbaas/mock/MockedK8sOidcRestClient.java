@@ -18,7 +18,7 @@ public class MockedK8sOidcRestClient extends K8sOidcRestClient {
     TestJwtUtils jwtUtils;
 
     public MockedK8sOidcRestClient() throws IOException {
-        super(false, false);
+        super(false);
     }
 
     @Override

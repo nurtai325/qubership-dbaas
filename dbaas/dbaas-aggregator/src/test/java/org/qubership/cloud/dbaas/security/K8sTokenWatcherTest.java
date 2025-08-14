@@ -2,15 +2,12 @@ package org.qubership.cloud.dbaas.security;
 
 import net.jodah.failsafe.Failsafe;
 import net.jodah.failsafe.RetryPolicy;
-import org.jose4j.jwk.RsaJsonWebKey;
-import org.jose4j.jwk.RsaJwkGenerator;
-import org.jose4j.jws.AlgorithmIdentifiers;
-import org.jose4j.jws.JsonWebSignature;
 import org.jose4j.jwt.JwtClaims;
 import org.jose4j.lang.JoseException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.qubership.cloud.dbaas.TestJwtUtils;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -24,6 +21,8 @@ class K8sTokenWatcherTest {
     private final static RetryPolicy<Object> TOKEN_CACHE_UPDATED_RETRY_POLICY = new RetryPolicy<>()
             .withMaxRetries(-1).withDelay(Duration.ofMillis(50)).withMaxDuration(Duration.ofSeconds(1));
 
+    private TestJwtUtils jwtUtils;
+
     K8sTokenWatcher watcher;
     AtomicReference<String> tokenCache;
 
@@ -32,21 +31,8 @@ class K8sTokenWatcherTest {
     Path dataLink;
     Thread watcherThread;
 
-    private static String getNewJwt() throws JoseException {
-        RsaJsonWebKey rsaJsonWebKey = RsaJwkGenerator.generateJwk(2048);
-        rsaJsonWebKey.setKeyId("k1");
-
-        JwtClaims claims = new JwtClaims();
-        claims.setExpirationTimeMinutesInTheFuture(10);
-        claims.setIssuedAtToNow();
-
-        JsonWebSignature jws = new JsonWebSignature();
-        jws.setPayload(claims.toJson());
-        jws.setKey(rsaJsonWebKey.getPrivateKey());
-        jws.setKeyIdHeaderValue(rsaJsonWebKey.getKeyId());
-        jws.setAlgorithmHeaderValue(AlgorithmIdentifiers.RSA_USING_SHA256);
-
-        return jws.getCompactSerialization();
+    K8sTokenWatcherTest() throws JoseException {
+        jwtUtils  = new TestJwtUtils();
     }
 
     @AfterEach
@@ -61,7 +47,12 @@ class K8sTokenWatcherTest {
         tempdir = dir.toAbsolutePath().toString();
 
         tokenFile = Files.createFile(Path.of(tempdir + "/token"));
-        String oldJwt = getNewJwt();
+
+        JwtClaims claims = new JwtClaims();
+        claims.setExpirationTimeMinutesInTheFuture(10);
+        claims.setIssuedAtToNow();
+        String oldJwt = jwtUtils.newJwt(claims, false);
+
         Files.writeString(tokenFile, oldJwt);
 
         dataLink = Files.createSymbolicLink(Path.of(tempdir + "/..data"), tokenFile);
@@ -76,7 +67,9 @@ class K8sTokenWatcherTest {
             assertEquals(oldJwt, tokenCache.get());
         });
 
-        String newJwt = getNewJwt();
+        claims.setExpirationTimeMinutesInTheFuture(10);
+        claims.setIssuedAtToNow();
+        String newJwt = jwtUtils.newJwt(claims, false);
         Files.writeString(tokenFile, newJwt);
 
         Files.delete(dataLink);

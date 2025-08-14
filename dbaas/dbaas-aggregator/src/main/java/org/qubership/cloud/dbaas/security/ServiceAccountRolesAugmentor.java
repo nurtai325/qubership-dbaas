@@ -9,13 +9,16 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.qubership.cloud.dbaas.Constants;
 
-import java.util.HashSet;
-import java.util.List;
+import java.util.Set;
 
 @ApplicationScoped
 public class ServiceAccountRolesAugmentor implements SecurityIdentityAugmentor {
     @Inject
-    ServiceAccountRolesManager secretReader;
+    ServiceAccountRolesManager rolesManager;
+
+    public ServiceAccountRolesAugmentor(ServiceAccountRolesManager rolesManager) {
+        this.rolesManager = rolesManager;
+    }
 
     @Override
     public Uni<SecurityIdentity> augment(SecurityIdentity identity, AuthenticationRequestContext context) {
@@ -25,11 +28,11 @@ public class ServiceAccountRolesAugmentor implements SecurityIdentityAugmentor {
 
         String principal = identity.getPrincipal().getName();
         String serviceName = principal.substring(principal.lastIndexOf(':') + 1);
-        List<String> roles = secretReader.getRolesByServiceAccountName(serviceName);
+        Set<String> roles = rolesManager.getRolesByServiceAccountName(serviceName);
 
         QuarkusSecurityIdentity.Builder builder = QuarkusSecurityIdentity.builder(identity);
         if (roles != null && !roles.isEmpty()) {
-            builder.addRoles(new HashSet<>(roles));
+            builder.addRoles(roles);
         } else {
             builder.addRole(Constants.DB_CLIENT);
         }

@@ -8,15 +8,14 @@ import jakarta.enterprise.event.Observes;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.qubership.cloud.dbaas.dto.role.ServiceAccountWithRoles;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @ApplicationScoped
 public class ServiceAccountRolesManager {
-    private final ArrayList<ServiceAccountWithRoles> serviceAccountsWithRoles = new ArrayList<>();
     @ConfigProperty(name = "roles.yaml")
     String rawYaml;
+
+    private final ArrayList<ServiceAccountWithRoles> serviceAccountsWithRoles = new ArrayList<>();
 
     public ServiceAccountRolesManager() {
     }
@@ -31,14 +30,14 @@ public class ServiceAccountRolesManager {
             Map<String, Object> rawServiceAccountsWithRoles = yamlReader.readValue(rawYaml, Map.class);
             for (Map.Entry<String, Object> serviceAccount : rawServiceAccountsWithRoles.entrySet()) {
                 List<String> roles = (List<String>) serviceAccount.getValue();
-                serviceAccountsWithRoles.add(new ServiceAccountWithRoles(serviceAccount.getKey(), roles));
+                serviceAccountsWithRoles.add(new ServiceAccountWithRoles(serviceAccount.getKey(), new HashSet<>(roles)));
             }
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse secret YAML", e);
         }
     }
 
-    public List<String> getRolesByServiceAccountName(String serviceAccountName) {
+    public Set<String> getRolesByServiceAccountName(String serviceAccountName) {
         for (ServiceAccountWithRoles s : serviceAccountsWithRoles) {
             if (serviceAccountName.equals(s.getName())) {
                 return s.getRoles();
