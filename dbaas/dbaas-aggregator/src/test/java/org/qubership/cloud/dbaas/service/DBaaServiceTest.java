@@ -36,6 +36,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.qubership.cloud.dbaas.security.validators.NamespaceValidator;
 
 import java.io.IOException;
 import java.util.*;
@@ -109,6 +110,9 @@ class DBaaServiceTest {
     @Mock
     DatabaseRolesService databaseRolesService;
 
+    @Mock
+    NamespaceValidator namespaceValidator;
+
     private static final String NAMESPACE = "test-namespace";
     private static final String PG_TYPE = "postgresql";
 
@@ -140,6 +144,7 @@ class DBaaServiceTest {
         when(logicalDbDbaasRepository.getDatabaseRegistryDbaasRepository()).thenReturn(databaseRegistryDbaasRepository);
         Mockito.when(databaseRegistryDbaasRepository.saveInternalDatabase(eq(database))).thenReturn(database);
         Mockito.when(databaseRegistryDbaasRepository.getDatabaseByClassifierAndType(classifier, dbType)).thenReturn(Optional.of(database.getDatabaseRegistry().get(0)));
+        Mockito.when(namespaceValidator.checkNamespaceFromClassifier(classifierRequest)).thenReturn(true);
 
         adapterSupportUsers(namespace, dbType, connection, classifierRequest);
         doReturn(false).when(mongoDefaultAdapter).isUsersSupported();
@@ -358,6 +363,8 @@ class DBaaServiceTest {
         Mockito.when(databaseRegistryDbaasRepository.saveInternalDatabase(eq(database))).thenReturn(database);
         Mockito.when(databaseRegistryDbaasRepository.getDatabaseByClassifierAndType(classifier, dbType)).thenReturn(Optional.of(database.getDatabaseRegistry().get(0)));
 
+        Mockito.when(namespaceValidator.checkNamespaceFromClassifier(classifierRequest)).thenReturn(true);
+
         adapterSupportUsers(namespace, dbType, connection, classifierRequest);
     }
 
@@ -397,6 +404,8 @@ class DBaaServiceTest {
         DatabaseRegistry database = createDatabase(classifier, dbType, "mongoDefaultAdapter", userName, databaseName);
         database.setConnectionProperties(Arrays.asList(connection));
         Mockito.when(databaseRegistryDbaasRepository.getDatabaseByClassifierAndType(classifier, dbType)).thenReturn(Optional.of(database.getDatabaseRegistry().get(0)));
+
+        Mockito.when(namespaceValidator.checkNamespaceFromClassifier(classifierRequest)).thenReturn(true);
 
         adapterSupportUsers(namespace, dbType, connection, classifierRequest);
     }
