@@ -87,8 +87,6 @@ class AggregatedDatabaseAdministrationControllerV3Test {
     @Inject
     ProcessConnectionPropertiesService processConnectionPropertiesService;
     @Inject
-    NamespaceValidator namespaceValidator;
-    @Inject
     TestJwtUtils jwtUtils;
 
     @Test

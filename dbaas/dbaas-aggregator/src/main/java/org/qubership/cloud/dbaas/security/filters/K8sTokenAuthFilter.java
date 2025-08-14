@@ -46,6 +46,8 @@ public class K8sTokenAuthFilter implements ClientRequestFilter {
 
     @Shutdown
     void shutdown() {
-        watcherThread.interrupt();
+        if (watcherThread != null) {
+            watcherThread.interrupt();
+        }
     }
 }

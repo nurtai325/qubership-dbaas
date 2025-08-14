@@ -74,8 +74,6 @@ public class DBaaService {
     ProcessConnectionPropertiesService connectionPropertiesService;
     @Inject
     DatabaseRolesService databaseRolesService;
-    @Inject
-    NamespaceValidator namespaceValidator;
 
     private ExecutorService asyncExecutorService = Executors.newSingleThreadExecutor();
 
@@ -250,7 +248,7 @@ public class DBaaService {
                         classifier.containsKey(MICROSERVICE_NAME) && classifier.containsKey(NAMESPACE)))) {
             return false;
         }
-        if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(classifier, namespaceValidator)) {
+        if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(classifier)) {
             throw InvalidClassifierException.withDefaultMsg(classifier);
         }
         return true;

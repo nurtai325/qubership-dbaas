@@ -30,7 +30,6 @@ import org.qubership.cloud.dbaas.exceptions.DbNotFoundException;
 import org.qubership.cloud.dbaas.exceptions.InvalidClassifierException;
 import org.qubership.cloud.dbaas.exceptions.UserDeletionException;
 import org.qubership.cloud.dbaas.exceptions.UserNotFoundException;
-import org.qubership.cloud.dbaas.security.validators.NamespaceValidator;
 import org.qubership.cloud.dbaas.service.AggregatedDatabaseAdministrationService;
 import org.qubership.cloud.dbaas.service.DBaaService;
 import org.qubership.cloud.dbaas.service.UserService;
@@ -52,8 +51,6 @@ import static org.qubership.cloud.dbaas.DbaasApiPath.USERS_PATH_V3;
 public class DatabaseUsersControllerV3 {
 
     @Inject
-    NamespaceValidator namespaceValidator;
-    @Inject
     private DBaaService dBaaService;
     @Inject
     private UserService userService;
@@ -72,7 +69,7 @@ public class DatabaseUsersControllerV3 {
                                     GetOrCreateUserRequest getOrCreateUserRequest) {
         log.info("Get request to get or create database user. Request body {}", getOrCreateUserRequest);
 
-        if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(getOrCreateUserRequest.getClassifier(), namespaceValidator)) {
+        if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(getOrCreateUserRequest.getClassifier())) {
             throw InvalidClassifierException.withDefaultMsg(getOrCreateUserRequest.getClassifier());
         }
 
@@ -184,7 +181,7 @@ public class DatabaseUsersControllerV3 {
                                 RestoreUsersRequest restoreUsersRequest) {
         log.info("Get request to restore users");
 
-        if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(restoreUsersRequest.getClassifier(), namespaceValidator)) {
+        if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(restoreUsersRequest.getClassifier())) {
             throw InvalidClassifierException.withDefaultMsg(restoreUsersRequest.getClassifier());
         }
 
@@ -204,7 +201,7 @@ public class DatabaseUsersControllerV3 {
                 || StringUtils.hasLength(request.getType()))) {
             return false;
         }
-        if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(request.getClassifier(), namespaceValidator)) {
+        if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(request.getClassifier())) {
             throw InvalidClassifierException.withDefaultMsg(request.getClassifier());
         }
         return true;

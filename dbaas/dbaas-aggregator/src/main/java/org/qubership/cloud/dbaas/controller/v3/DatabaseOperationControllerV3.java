@@ -58,8 +58,6 @@ public class DatabaseOperationControllerV3 {
     OperationService operationService;
     @Inject
     EncryptionServiceProvider encryptionServiceProvider;
-    @Inject
-    NamespaceValidator namespaceValidator;
 
     @Operation(summary = "V3. Change user password",
             description = "The API changes password of a user that is related to the specified database. A password will be changed to a random value." +
@@ -80,7 +78,7 @@ public class DatabaseOperationControllerV3 {
                                        @PathParam(NAMESPACE_PARAMETER) String namespace) {
         log.info("Received request on changed password with request body {} and namespace {}", passwordChangeRequest, namespace);
 
-        if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(passwordChangeRequest.getClassifier(), namespaceValidator)) {
+        if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(passwordChangeRequest.getClassifier())) {
             throw InvalidClassifierException.withDefaultMsg(passwordChangeRequest.getClassifier());
         }
 
@@ -136,7 +134,7 @@ public class DatabaseOperationControllerV3 {
         RecreateDatabaseResponse response = new RecreateDatabaseResponse();
         for (RecreateDatabaseRequest recreateDbRequest : recreateDatabasesRequests) {
             try {
-                if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(recreateDbRequest.getClassifier(), namespaceValidator)) {
+                if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(recreateDbRequest.getClassifier())) {
                     throw InvalidClassifierException.withDefaultMsg(recreateDbRequest.getClassifier());
                 }
 
@@ -350,7 +348,7 @@ public class DatabaseOperationControllerV3 {
                 MapUtils.isEmpty(updateConnectionPropertiesRequest.getConnectionProperties())) {
             return true;
         };
-        if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(updateConnectionPropertiesRequest.getClassifier(), namespaceValidator)) {
+        if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(updateConnectionPropertiesRequest.getClassifier())) {
             throw InvalidClassifierException.withDefaultMsg(updateConnectionPropertiesRequest.getClassifier());
         }
         return false;
@@ -367,7 +365,7 @@ public class DatabaseOperationControllerV3 {
         if (!(classifier.containsKey(NAMESPACE) && Objects.equals(classifier.get(NAMESPACE), namespace))) {
             return false;
         }
-        if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(classifier, namespaceValidator)) {
+        if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(classifier)) {
             throw InvalidClassifierException.withDefaultMsg(classifier);
         }
         return true;

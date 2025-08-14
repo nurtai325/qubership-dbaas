@@ -47,6 +47,8 @@ public class K8sTokenInterceptor implements Interceptor {
 
     @Shutdown
     void shutdown() {
-        watcherThread.interrupt();
+        if (watcherThread != null) {
+            watcherThread.interrupt();
+        }
     }
 }

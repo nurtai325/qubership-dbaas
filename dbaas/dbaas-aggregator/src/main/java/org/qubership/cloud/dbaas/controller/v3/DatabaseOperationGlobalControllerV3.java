@@ -44,9 +44,6 @@ import static jakarta.ws.rs.core.Response.Status.BAD_REQUEST;
                 "without requiring a specific namespace in the endpoints.")
 @Produces(MediaType.APPLICATION_JSON)
 public class DatabaseOperationGlobalControllerV3 extends AbstractDatabaseAdministrationController {
-    @Inject
-    NamespaceValidator namespaceValidator;
-
     private OperationService operationService;
 
     public DatabaseOperationGlobalControllerV3() {}
@@ -92,7 +89,7 @@ public class DatabaseOperationGlobalControllerV3 extends AbstractDatabaseAdminis
                     StringUtils.isEmpty(updateHostRequest.getPhysicalDatabaseId())) {
                 return badRequestTmfResponse(i, "physicalDatabaseId and physicalDatabaseHost");
             }
-            if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(updateHostRequest.getClassifier(), namespaceValidator)) {
+            if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(updateHostRequest.getClassifier())) {
                 throw InvalidClassifierException.withDefaultMsg(updateHostRequest.getClassifier());
             }
         }
