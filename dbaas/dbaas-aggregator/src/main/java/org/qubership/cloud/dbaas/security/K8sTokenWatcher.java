@@ -22,8 +22,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 public class K8sTokenWatcher implements Runnable {
-    private final boolean isJwtEnabled;
-
     private static final String tokenFileLinkName = "..data";
 
     private final String tokenLocation;
@@ -34,9 +32,7 @@ public class K8sTokenWatcher implements Runnable {
 
     private RetryPolicy<Object> retryPolicy;
 
-    public K8sTokenWatcher(String tokenDir, String tokenLocation, AtomicReference<String> tokenCache, boolean isJwtEnabled) {
-        this.isJwtEnabled = isJwtEnabled;
-
+    public K8sTokenWatcher(String tokenDir, String tokenLocation, AtomicReference<String> tokenCache) {
         retryPolicy = new RetryPolicy<>()
                 .withMaxRetries(-1)
                 .withBackoff(500, Duration.ofSeconds(600).toMillis(), ChronoUnit.MILLIS);
@@ -60,10 +56,6 @@ public class K8sTokenWatcher implements Runnable {
     }
 
     public void run() {
-        if (!isJwtEnabled) {
-            return;
-        }
-
         try {
             WatchKey key;
             while ((key = watchService.take()) != null) {

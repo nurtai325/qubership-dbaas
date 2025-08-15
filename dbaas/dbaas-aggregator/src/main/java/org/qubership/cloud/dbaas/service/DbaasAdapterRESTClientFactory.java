@@ -1,5 +1,6 @@
 package org.qubership.cloud.dbaas.service;
 
+import jakarta.ws.rs.Priorities;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.qubership.cloud.dbaas.dto.v3.ApiVersion;
 import org.qubership.cloud.dbaas.monitoring.interceptor.TimeMeasurementManager;
@@ -51,11 +52,16 @@ public class DbaasAdapterRESTClientFactory {
     public DbaasAdapter createDbaasAdapterClientV2(String username, String password, String adapterAddress, String type,
                                                    String identifier, AdapterActionTrackerClient tracker, ApiVersion apiVersions) {
         BasicAuthFilter basicAuthFilter = new BasicAuthFilter(username, password);
-        K8sTokenAuthFilter k8sTokenAuthFilter = new K8sTokenAuthFilter(tokenDir, tokenLocation, isJwtEnabled);
-        DynamicAuthFilter dynamicAuthFilter = new DynamicAuthFilter(k8sTokenAuthFilter);
+
+        K8sTokenAuthFilter k8sTokenAuthFilter = null;
+        if (isJwtEnabled) {
+             k8sTokenAuthFilter = new K8sTokenAuthFilter(tokenDir, tokenLocation);
+        }
+
+        DynamicAuthFilter dynamicAuthFilter = new DynamicAuthFilter(k8sTokenAuthFilter != null ? k8sTokenAuthFilter : basicAuthFilter);
 
         DbaasAdapterRestClientV2 restClient = RestClientBuilder.newBuilder().baseUri(URI.create(adapterAddress))
-                .register(dynamicAuthFilter)
+                .register(dynamicAuthFilter, Priorities.AUTHENTICATION)
                 .register(new DbaasAdapterRestClientLoggingFilter())
                 .connectTimeout(3, TimeUnit.MINUTES)
                 .readTimeout(3, TimeUnit.MINUTES)

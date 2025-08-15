@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 public class K8sTokenInterceptor implements Interceptor {
     private final AtomicReference<String> token = new AtomicReference<>();
-    private final Thread watcherThread;
+    private Thread watcherThread;
 
     @Inject
     @ConfigProperty(name = "dbaas.security.k8s.jwt.enabled")
@@ -33,7 +33,9 @@ public class K8sTokenInterceptor implements Interceptor {
 
     public K8sTokenInterceptor() {
         token.set("");
-        watcherThread = Thread.startVirtualThread(new K8sTokenWatcher(tokenDir, tokenLocation, token, isJwtEnabled));
+        if (isJwtEnabled) {
+            watcherThread = Thread.startVirtualThread(new K8sTokenWatcher(tokenDir, tokenLocation, token));
+        }
     }
 
     public @NotNull Response intercept(Interceptor.Chain chain) throws IOException {
