@@ -36,7 +36,6 @@ import org.qubership.cloud.dbaas.security.validators.NamespaceValidator;
 import org.qubership.cloud.dbaas.service.*;
 import org.qubership.cloud.dbaas.utils.JwtUtils;
 import org.qubership.cloud.framework.contexts.tenant.BaseTenantProvider;
-import org.qubership.cloud.framework.contexts.tenant.DefaultTenantProvider;
 import org.qubership.cloud.framework.contexts.tenant.TenantContextObject;
 
 import java.security.Principal;
@@ -45,7 +44,6 @@ import java.util.*;
 import static org.qubership.cloud.dbaas.Constants.*;
 import static org.qubership.cloud.dbaas.DbaasApiPath.*;
 import static org.qubership.cloud.dbaas.service.AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationServiceConst.*;
-import static org.qubership.cloud.framework.contexts.tenant.TenantContextObject.TENANT_HEADER;
 
 @Slf4j
 @Path(DATABASES_PATH_V3)
@@ -434,6 +432,6 @@ public class AggregatedDatabaseAdministrationControllerV3 extends AbstractDataba
         if (tenantId.equals(classifier.get(TENANT_ID))) {
             return;
         }
-        throw new InvalidTenantIdException();
+        throw new ForbiddenTenantIdException();
     }
 }

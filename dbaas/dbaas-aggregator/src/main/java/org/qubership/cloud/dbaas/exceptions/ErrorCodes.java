@@ -211,7 +211,7 @@ public enum ErrorCodes implements ErrorCode {
     CORE_DBAAS_4046(
             "CORE-DBAAS-4046",
             "Invalid tenantId in classifier",
-            "tenantId from classifier and tenatId from request context don't match"),
+            "tenantId from classifier and tenantId from request don't match"),
 
     CORE_DBAAS_7002(
             "CORE-DBAAS-7002",
