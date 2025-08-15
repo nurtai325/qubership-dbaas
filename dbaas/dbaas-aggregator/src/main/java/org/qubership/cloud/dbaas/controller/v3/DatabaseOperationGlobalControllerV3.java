@@ -89,9 +89,6 @@ public class DatabaseOperationGlobalControllerV3 extends AbstractDatabaseAdminis
                     StringUtils.isEmpty(updateHostRequest.getPhysicalDatabaseId())) {
                 return badRequestTmfResponse(i, "physicalDatabaseId and physicalDatabaseHost");
             }
-            if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(updateHostRequest.getClassifier())) {
-                throw InvalidClassifierException.withDefaultMsg(updateHostRequest.getClassifier());
-            }
         }
         return null;
     }

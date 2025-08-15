@@ -88,12 +88,10 @@ public class AggregatedDatabaseAdministrationControllerV3 extends AbstractDataba
                                    @Parameter(description = "Determines if database should be created asynchronously")
                                    @QueryParam(ASYNC_PARAMETER) Boolean async) {
 
-        if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(createRequest.getClassifier())) {
-            throw InvalidClassifierException.withDefaultMsg(createRequest.getClassifier());
-        } else if (!namespaceValidator.checkNamespaceFromClassifier(createRequest.getClassifier())) {
+        if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(createRequest.getClassifier()) ||
+                !namespaceValidator.checkNamespaceFromClassifier(createRequest.getClassifier())) {
             throw InvalidClassifierException.withDefaultMsg(createRequest.getClassifier());
         }
-
 
         checkOriginService(createRequest);
 
@@ -373,10 +371,6 @@ public class AggregatedDatabaseAdministrationControllerV3 extends AbstractDataba
                                                @PathParam("type") String type) {
         if (dbaaSHelper.isProductionMode()) {
             throw new ForbiddenDeleteOperationException();
-        }
-
-        if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(classifierRequest.getClassifier())) {
-            throw InvalidClassifierException.withDefaultMsg(classifierRequest.getClassifier());
         }
 
         checkOriginService(classifierRequest);

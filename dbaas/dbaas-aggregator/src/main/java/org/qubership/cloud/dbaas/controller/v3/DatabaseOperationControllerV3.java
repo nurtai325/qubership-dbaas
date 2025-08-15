@@ -78,10 +78,6 @@ public class DatabaseOperationControllerV3 {
                                        @PathParam(NAMESPACE_PARAMETER) String namespace) {
         log.info("Received request on changed password with request body {} and namespace {}", passwordChangeRequest, namespace);
 
-        if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(passwordChangeRequest.getClassifier())) {
-            throw InvalidClassifierException.withDefaultMsg(passwordChangeRequest.getClassifier());
-        }
-
         if (passwordChangeRequest == null || StringUtils.isEmpty(passwordChangeRequest.getType())) {
             throw new PasswordChangeValidationException("The request body is empty or database type is not specified", Source.builder()
                     .pointer(passwordChangeRequest == null ? "/" : "/type").build());
@@ -134,10 +130,6 @@ public class DatabaseOperationControllerV3 {
         RecreateDatabaseResponse response = new RecreateDatabaseResponse();
         for (RecreateDatabaseRequest recreateDbRequest : recreateDatabasesRequests) {
             try {
-                if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(recreateDbRequest.getClassifier())) {
-                    throw InvalidClassifierException.withDefaultMsg(recreateDbRequest.getClassifier());
-                }
-
                 Optional<DatabaseRegistry> existedDbRegisty = getDatabase(namespace, recreateDbRequest);
                 DatabaseRegistry newDb = dBaaService.recreateDatabase(existedDbRegisty.orElseThrow(), recreateDbRequest.getPhysicalDatabaseId());
                 log.info("logical database with classifier {} and type {} was successfully recreated in physiacalDb id {}",
@@ -344,14 +336,8 @@ public class DatabaseOperationControllerV3 {
     }
 
     private boolean isUpdateConnectionRequestBodyValid(UpdateConnectionPropertiesRequest updateConnectionPropertiesRequest) {
-        if(MapUtils.isEmpty(updateConnectionPropertiesRequest.getClassifier()) ||
-                MapUtils.isEmpty(updateConnectionPropertiesRequest.getConnectionProperties())) {
-            return true;
-        };
-        if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(updateConnectionPropertiesRequest.getClassifier())) {
-            throw InvalidClassifierException.withDefaultMsg(updateConnectionPropertiesRequest.getClassifier());
-        }
-        return false;
+        return MapUtils.isEmpty(updateConnectionPropertiesRequest.getClassifier()) ||
+                MapUtils.isEmpty(updateConnectionPropertiesRequest.getConnectionProperties());
     }
 
     private boolean isDatabaseContainsConnectionPropertiesForRole(String role, List<Map<String, Object>> databaseProperties) {
@@ -362,13 +348,10 @@ public class DatabaseOperationControllerV3 {
         if (classifier == null) {
             return false;
         }
-        if (!(classifier.containsKey(NAMESPACE) && Objects.equals(classifier.get(NAMESPACE), namespace))) {
-            return false;
+        if (classifier.containsKey(NAMESPACE)) {
+            return Objects.equals(classifier.get(NAMESPACE), namespace);
         }
-        if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(classifier)) {
-            throw InvalidClassifierException.withDefaultMsg(classifier);
-        }
-        return true;
+        return false;
     }
 
     private List<ValidationException> validateRecreateDbRequest(String namespace, List<RecreateDatabaseRequest> recreateDatabasesRequests) {

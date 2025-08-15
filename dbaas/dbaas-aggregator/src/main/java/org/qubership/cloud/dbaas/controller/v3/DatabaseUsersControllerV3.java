@@ -69,10 +69,6 @@ public class DatabaseUsersControllerV3 {
                                     GetOrCreateUserRequest getOrCreateUserRequest) {
         log.info("Get request to get or create database user. Request body {}", getOrCreateUserRequest);
 
-        if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(getOrCreateUserRequest.getClassifier())) {
-            throw InvalidClassifierException.withDefaultMsg(getOrCreateUserRequest.getClassifier());
-        }
-
         DatabaseRegistry foundDb = dBaaService.findDatabaseByClassifierAndType(getOrCreateUserRequest.getClassifier(), getOrCreateUserRequest.getType(), true);
         if (foundDb == null) {
             log.error("Database with classifier={} is not found.", getOrCreateUserRequest.getClassifier());
@@ -181,10 +177,6 @@ public class DatabaseUsersControllerV3 {
                                 RestoreUsersRequest restoreUsersRequest) {
         log.info("Get request to restore users");
 
-        if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(restoreUsersRequest.getClassifier())) {
-            throw InvalidClassifierException.withDefaultMsg(restoreUsersRequest.getClassifier());
-        }
-
         RestoreUsersResponse restoreUsersResponse = userService.restoreUsers(restoreUsersRequest);
         if (!restoreUsersResponse.getUnsuccessfully().isEmpty()) {
             return Response.serverError().entity(restoreUsersResponse).build();
@@ -196,15 +188,9 @@ public class DatabaseUsersControllerV3 {
         if (StringUtils.hasLength(request.getUserId())) {
             return true;
         }
-        if (!(StringUtils.hasLength(request.getUserId())
+        return StringUtils.hasLength(request.getUserId())
                 || !ObjectUtils.isEmpty(request.getClassifier())
-                || StringUtils.hasLength(request.getType()))) {
-            return false;
-        }
-        if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(request.getClassifier())) {
-            throw InvalidClassifierException.withDefaultMsg(request.getClassifier());
-        }
-        return true;
+                || StringUtils.hasLength(request.getType());
     }
 }
 

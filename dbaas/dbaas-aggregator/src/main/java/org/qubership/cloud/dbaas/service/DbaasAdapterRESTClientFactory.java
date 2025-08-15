@@ -26,6 +26,14 @@ public class DbaasAdapterRESTClientFactory {
     private boolean isJwtEnabled;
 
     @Inject
+    @ConfigProperty(name = "dbaas.security.k8s.jwt.token.netcracker.path")
+    private String tokenLocation;
+
+    @Inject
+    @ConfigProperty(name = "dbaas.security.k8s.jwt.token.netcracker.dir")
+    private String tokenDir;
+
+    @Inject
     TimeMeasurementManager timeMeasurementManager;
 
     public DbaasAdapter createDbaasAdapterClient(String username, String password, String adapterAddress, String type,
@@ -43,7 +51,7 @@ public class DbaasAdapterRESTClientFactory {
     public DbaasAdapter createDbaasAdapterClientV2(String username, String password, String adapterAddress, String type,
                                                    String identifier, AdapterActionTrackerClient tracker, ApiVersion apiVersions) {
         BasicAuthFilter basicAuthFilter = new BasicAuthFilter(username, password);
-        K8sTokenAuthFilter k8sTokenAuthFilter = new K8sTokenAuthFilter();
+        K8sTokenAuthFilter k8sTokenAuthFilter = new K8sTokenAuthFilter(tokenDir, tokenLocation, isJwtEnabled);
         DynamicAuthFilter dynamicAuthFilter = new DynamicAuthFilter(k8sTokenAuthFilter);
 
         DbaasAdapterRestClientV2 restClient = RestClientBuilder.newBuilder().baseUri(URI.create(adapterAddress))

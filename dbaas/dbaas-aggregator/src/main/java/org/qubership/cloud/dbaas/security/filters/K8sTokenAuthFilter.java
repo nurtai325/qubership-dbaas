@@ -15,25 +15,14 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static jakarta.ws.rs.Priorities.AUTHENTICATION;
 
-@Priority(AUTHENTICATION)
 @Slf4j
 public class K8sTokenAuthFilter implements ClientRequestFilter {
     private final AtomicReference<String> token = new AtomicReference<>();
     private final Thread watcherThread;
 
-    @Inject
-    @ConfigProperty(name = "dbaas.security.k8s.jwt.enabled")
-    private boolean isJwtEnabled;
+    public K8sTokenAuthFilter() {watcherThread=null;}
 
-    @Inject
-    @ConfigProperty(name = "dbaas.security.k8s.jwt.token.netcracker.path")
-    private String tokenLocation;
-
-    @Inject
-    @ConfigProperty(name = "dbaas.security.k8s.jwt.token.netcracker.dir")
-    private String tokenDir;
-
-    public K8sTokenAuthFilter() {
+    public K8sTokenAuthFilter(String tokenDir, String tokenLocation, boolean isJwtEnabled) {
         token.set("");
 
         watcherThread = Thread.startVirtualThread(new K8sTokenWatcher(tokenDir, tokenLocation, token, isJwtEnabled));

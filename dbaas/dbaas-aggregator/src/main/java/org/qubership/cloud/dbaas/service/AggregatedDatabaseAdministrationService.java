@@ -493,11 +493,8 @@ public class AggregatedDatabaseAdministrationService {
         }
 
         public static boolean isClassifierCorrect(Map<String, Object> classifier) {
-            if (!(classifier != null && classifier.containsKey(MICROSERVICE_NAME) && classifier.containsKey(NAMESPACE))) {
-                return false;
-            }
-            if (!(Objects.equals(classifier.get(SCOPE), SCOPE_VALUE_SERVICE) || (Objects.equals(classifier.get(SCOPE), SCOPE_VALUE_TENANT) && classifier.containsKey(TENANT_ID)))) {
-                return false;
+            if (classifier != null && classifier.containsKey(MICROSERVICE_NAME) && classifier.containsKey(NAMESPACE)) {
+                return Objects.equals(classifier.get(SCOPE), SCOPE_VALUE_SERVICE) || (Objects.equals(classifier.get(SCOPE), SCOPE_VALUE_TENANT) && classifier.containsKey(TENANT_ID));
             }
             return false;
         }
