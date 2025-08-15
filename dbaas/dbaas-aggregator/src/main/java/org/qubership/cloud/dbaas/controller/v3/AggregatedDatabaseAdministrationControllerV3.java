@@ -209,7 +209,7 @@ public class AggregatedDatabaseAdministrationControllerV3 extends AbstractDataba
                                             @Parameter(description = "The type of base in which the database was created. For example PostgreSQL  or MongoDB", required = true)
                                             @PathParam("type") String type) {
         checkOriginService(classifierRequest);
-        if (!dBaaService.isValidClassifierV3(classifierRequest.getClassifier())) {
+        if (!dBaaService.isValidClassifierV3(classifierRequest.getClassifier()) || !namespaceValidator.checkNamespaceFromClassifier(classifierRequest.getClassifier(), JwtUtils.getNamespace(securityContext))) {
             throw new InvalidClassifierException("Invalid V3 classifier", classifierRequest.getClassifier(), Source.builder().pointer("").build());
         }
         checkTenantId(classifierRequest.getClassifier());
@@ -295,7 +295,7 @@ public class AggregatedDatabaseAdministrationControllerV3 extends AbstractDataba
                                         @PathParam(NAMESPACE_PARAMETER) String namespace) {
         log.info("Get request on adding external database with classifier {} and type {} in namespace {}", externalDatabaseRequest.getClassifier(), externalDatabaseRequest.getType(), namespace);
 
-        if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(externalDatabaseRequest.getClassifier())) {
+        if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(externalDatabaseRequest.getClassifier()) || !namespaceValidator.checkNamespaceFromClassifier(externalDatabaseRequest.getClassifier(), JwtUtils.getNamespace(securityContext))) {
             throw InvalidClassifierException.withDefaultMsg(externalDatabaseRequest.getClassifier());
         }
         checkTenantId(externalDatabaseRequest.getClassifier());
