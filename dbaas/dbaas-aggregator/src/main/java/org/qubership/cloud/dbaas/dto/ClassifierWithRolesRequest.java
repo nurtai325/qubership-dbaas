@@ -23,27 +23,4 @@ public class ClassifierWithRolesRequest implements UserRolesServices {
     private String originService;
     @Schema(description = "Indicates connection properties with which user role should be returned to a client")
     private String userRole;
-
-    public String getOriginService() {
-        if (StringUtils.isNotEmpty(originService)) {
-            return originService;
-        } else if (securityContext == null) {
-            return "";
-        }
-
-        Principal defaultPrincipal = securityContext.getUserPrincipal();
-
-        if (!(defaultPrincipal instanceof DefaultJWTCallerPrincipal principal)) {
-            return "";
-        }
-
-        Map<String, Object> kubernetesClaims = principal.getClaim("kubernetes.io");
-
-        JsonObject serviceAccount = (JsonObject) kubernetesClaims.get("serviceaccount");
-        JsonString serviceAccountName = (JsonString) serviceAccount.get("name");
-
-        originService = serviceAccountName.getString();
-
-        return originService;
-    }
 }

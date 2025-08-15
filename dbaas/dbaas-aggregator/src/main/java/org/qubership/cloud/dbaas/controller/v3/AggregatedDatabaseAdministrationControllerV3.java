@@ -1,11 +1,13 @@
 package org.qubership.cloud.dbaas.controller.v3;
 
+import io.smallrye.jwt.auth.principal.DefaultJWTCallerPrincipal;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.SecurityContext;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
@@ -17,6 +19,7 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.qubership.cloud.context.propagation.core.ContextManager;
 import org.qubership.cloud.dbaas.controller.abstact.AbstractDatabaseAdministrationController;
 import org.qubership.cloud.dbaas.dto.ClassifierWithRolesRequest;
 import org.qubership.cloud.dbaas.dto.Source;
@@ -31,12 +34,18 @@ import org.qubership.cloud.dbaas.exceptions.NotFoundException;
 import org.qubership.cloud.dbaas.monitoring.model.DatabasesInfo;
 import org.qubership.cloud.dbaas.security.validators.NamespaceValidator;
 import org.qubership.cloud.dbaas.service.*;
+import org.qubership.cloud.dbaas.utils.JwtUtils;
+import org.qubership.cloud.framework.contexts.tenant.BaseTenantProvider;
+import org.qubership.cloud.framework.contexts.tenant.DefaultTenantProvider;
+import org.qubership.cloud.framework.contexts.tenant.TenantContextObject;
 
+import java.security.Principal;
 import java.util.*;
 
 import static org.qubership.cloud.dbaas.Constants.*;
 import static org.qubership.cloud.dbaas.DbaasApiPath.*;
 import static org.qubership.cloud.dbaas.service.AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationServiceConst.*;
+import static org.qubership.cloud.framework.contexts.tenant.TenantContextObject.TENANT_HEADER;
 
 @Slf4j
 @Path(DATABASES_PATH_V3)
@@ -66,6 +75,8 @@ public class AggregatedDatabaseAdministrationControllerV3 extends AbstractDataba
     BlueGreenService blueGreenService;
     @Inject
     NamespaceValidator namespaceValidator;
+    @Inject
+    SecurityContext securityContext;
 
     @Operation(summary = "V3. Creates new database V3",
             description = "Creates new database and returns it with connection information, " +
@@ -92,7 +103,7 @@ public class AggregatedDatabaseAdministrationControllerV3 extends AbstractDataba
                 !namespaceValidator.checkNamespaceFromClassifier(createRequest.getClassifier())) {
             throw InvalidClassifierException.withDefaultMsg(createRequest.getClassifier());
         }
-
+        checkTenantId(createRequest.getClassifier());
         checkOriginService(createRequest);
 
         namespace = (String) createRequest.getClassifier().get(NAMESPACE);
@@ -203,6 +214,7 @@ public class AggregatedDatabaseAdministrationControllerV3 extends AbstractDataba
         if (!dBaaService.isValidClassifierV3(classifierRequest.getClassifier())) {
             throw new InvalidClassifierException("Invalid V3 classifier", classifierRequest.getClassifier(), Source.builder().pointer("").build());
         }
+        checkTenantId(classifierRequest.getClassifier());
         checkOriginService(classifierRequest);
         namespace = (String) classifierRequest.getClassifier().get(NAMESPACE);
 
@@ -288,6 +300,7 @@ public class AggregatedDatabaseAdministrationControllerV3 extends AbstractDataba
         if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(externalDatabaseRequest.getClassifier())) {
             throw InvalidClassifierException.withDefaultMsg(externalDatabaseRequest.getClassifier());
         }
+        checkTenantId(externalDatabaseRequest.getClassifier());
 
         DatabaseRegistry databaseRegistry = externalDatabaseRequest.toDatabaseRegistry();
         Optional<BgDomain> bgDomainOpt = aggregatedDatabaseAdministrationService.getBgDomain(namespace);
@@ -401,9 +414,26 @@ public class AggregatedDatabaseAdministrationControllerV3 extends AbstractDataba
     }
 
     private void checkOriginService(UserRolesServices rolesServices) {
+        Principal defaultPrincipal = securityContext.getUserPrincipal();
+
+        if (defaultPrincipal instanceof DefaultJWTCallerPrincipal principal) {
+            rolesServices.setOriginService(JwtUtils.getServiceAccountName(principal));
+        }
+
         if (rolesServices.getOriginService() == null || rolesServices.getOriginService().isEmpty()) {
             log.error("Request body={} must contain originService", rolesServices);
             throw new InvalidOriginServiceException();
         }
+    }
+
+    private void checkTenantId(Map<String, Object> classifier) {
+        if (!Objects.equals(classifier.get(SCOPE), SCOPE_VALUE_TENANT)) {
+            return;
+        }
+        String tenantId = ((TenantContextObject) ContextManager.get(BaseTenantProvider.TENANT_CONTEXT_NAME)).getTenant();
+        if (tenantId.equals(classifier.get(TENANT_ID))) {
+            return;
+        }
+        throw new InvalidTenantIdException();
     }
 }

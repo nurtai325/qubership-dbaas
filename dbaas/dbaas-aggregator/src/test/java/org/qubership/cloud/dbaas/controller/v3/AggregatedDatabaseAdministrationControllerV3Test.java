@@ -49,6 +49,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.qubership.cloud.dbaas.Constants.*;
 import static org.qubership.cloud.dbaas.DbaasApiPath.*;
+import static org.qubership.cloud.framework.contexts.tenant.TenantContextObject.TENANT_HEADER;
 
 @QuarkusTest
 @QuarkusTestResource(PostgresqlContainerResource.class)
@@ -496,12 +497,15 @@ class AggregatedDatabaseAdministrationControllerV3Test {
 
     @Test
     void testClassifierWithTenantScopeToCreateDatabase() throws JsonProcessingException {
+        String tenantId = UUID.randomUUID().toString();
         Map<String, Object> classifier = getSampleClassifier();
         classifier.put("scope", "tenant");
+        classifier.put(TENANT_ID, tenantId);
         DatabaseCreateRequestV3 databaseCreateRequest = getDatabaseCreateRequestSample(classifier);
         given().auth().preemptive().basic("cluster-dba", "someDefaultPassword")
                 .pathParam(NAMESPACE_PARAMETER, TEST_NAMESPACE)
                 .contentType(MediaType.APPLICATION_JSON)
+                .header(TENANT_HEADER, tenantId)
                 .body(objectMapper.writeValueAsString(databaseCreateRequest))
                 .when().put()
                 .then()

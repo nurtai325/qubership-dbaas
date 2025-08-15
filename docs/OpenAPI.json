@@ -4307,9 +4307,6 @@
             "description": "Specifies the identificator of physical database where a logical database will be created. If it is not specified then logical database will be created in default physical database. You can get the list of all physical databases by \"List registered physical databases\" API.",
             "type": "string"
           },
-          "securityContext": {
-            "$ref": "#/components/schemas/SecurityContext"
-          },
           "originService": {
             "description": "Origin service which send request",
             "type": "string"

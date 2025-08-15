@@ -20,9 +20,6 @@ import java.util.Map;
 @Schema(description = "V3 Request model for adding database to DBaaS")
 @NoArgsConstructor
 public class DatabaseCreateRequestV3 extends AbstractDatabaseCreateRequest implements UserRolesServices {
-    @Inject
-    // todo: test this
-    SecurityContext securityContext;
     @Schema(description = "Origin service which send request")
     private String originService;
     @Schema(description = "Indicates connection properties with which user role should be returned to a client")
@@ -40,28 +37,5 @@ public class DatabaseCreateRequestV3 extends AbstractDatabaseCreateRequest imple
         super.setNamePrefix(databaseDeclarativeConfig.getNamePrefix());
         this.originService = originService;
         this.userRole = userRole;
-    }
-
-    public String getOriginService() {
-        if (StringUtils.isNotEmpty(originService)) {
-            return originService;
-        } else if (securityContext == null) {
-            return "";
-        }
-
-        Principal defaultPrincipal = securityContext.getUserPrincipal();
-
-        if (!(defaultPrincipal instanceof DefaultJWTCallerPrincipal principal)) {
-            return "";
-        }
-
-        Map<String, Object> kubernetesClaims = principal.getClaim("kubernetes.io");
-
-        JsonObject serviceAccount = (JsonObject) kubernetesClaims.get("serviceaccount");
-        JsonString serviceAccountName = (JsonString) serviceAccount.get("name");
-
-        originService = serviceAccountName.getString();
-
-        return originService;
     }
 }

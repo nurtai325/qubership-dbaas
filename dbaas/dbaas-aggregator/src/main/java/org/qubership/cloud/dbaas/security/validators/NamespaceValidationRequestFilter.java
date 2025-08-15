@@ -9,6 +9,7 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
 import lombok.extern.slf4j.Slf4j;
 import org.qubership.cloud.dbaas.DbaasApiPath;
+import org.qubership.cloud.dbaas.utils.JwtUtils;
 
 import java.io.IOException;
 import java.security.Principal;
@@ -35,10 +36,7 @@ public class NamespaceValidationRequestFilter implements ContainerRequestFilter 
             return;
         }
 
-        Map<String, Object> kubernetesClaims = principal.getClaim("kubernetes.io");
-        JsonString namespaceFromJwt = (JsonString) kubernetesClaims.get("namespace");
-
-        if (!namespaceValidator.checkNamespaceIsolation(namespaceFromPath, namespaceFromJwt.getString())) {
+        if (!namespaceValidator.checkNamespaceIsolation(namespaceFromPath, JwtUtils.getNamespace(principal))) {
             requestContext.abortWith(Response.status(Response.Status.FORBIDDEN.getStatusCode(), "Namespace from path and namespace from jwt token doesn't not match or aren't in the same composite structure").build());
         }
     }
