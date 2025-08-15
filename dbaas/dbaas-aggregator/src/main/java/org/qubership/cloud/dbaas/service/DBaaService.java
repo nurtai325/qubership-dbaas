@@ -241,17 +241,11 @@ public class DBaaService {
     }
 
     public boolean isValidClassifierV3(Map<String, Object> classifier) {
-        if (!(classifier != null &&
+        return classifier != null &&
                 (classifier.containsKey(SCOPE) &&
                         ((classifier.get(SCOPE).equals(SCOPE_VALUE_TENANT) && classifier.containsKey(TENANT_ID)) ||
                                 classifier.get(SCOPE).equals(SCOPE_VALUE_SERVICE)) &&
-                        classifier.containsKey(MICROSERVICE_NAME) && classifier.containsKey(NAMESPACE)))) {
-            return false;
-        }
-        if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(classifier)) {
-            throw InvalidClassifierException.withDefaultMsg(classifier);
-        }
-        return true;
+                        classifier.containsKey(MICROSERVICE_NAME) && classifier.containsKey(NAMESPACE));
     }
 
     public void dropDatabase(DatabaseRegistry databaseRegistry) {

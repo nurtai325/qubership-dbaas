@@ -98,7 +98,7 @@ public class AggregatedDatabaseAdministrationControllerV3 extends AbstractDataba
                                    @QueryParam(ASYNC_PARAMETER) Boolean async) {
 
         if (!AggregatedDatabaseAdministrationService.AggregatedDatabaseAdministrationUtils.isClassifierCorrect(createRequest.getClassifier()) ||
-                !namespaceValidator.checkNamespaceFromClassifier(createRequest.getClassifier())) {
+                !namespaceValidator.checkNamespaceFromClassifier(createRequest.getClassifier(), JwtUtils.getNamespace(securityContext))) {
             throw InvalidClassifierException.withDefaultMsg(createRequest.getClassifier());
         }
         checkTenantId(createRequest.getClassifier());
@@ -412,12 +412,9 @@ public class AggregatedDatabaseAdministrationControllerV3 extends AbstractDataba
     }
 
     private void checkOriginService(UserRolesServices rolesServices) {
-        Principal defaultPrincipal = securityContext.getUserPrincipal();
-
-        if (defaultPrincipal instanceof DefaultJWTCallerPrincipal principal) {
+        if (securityContext.getUserPrincipal() instanceof DefaultJWTCallerPrincipal principal) {
             rolesServices.setOriginService(JwtUtils.getServiceAccountName(principal));
         }
-
         if (rolesServices.getOriginService() == null || rolesServices.getOriginService().isEmpty()) {
             log.error("Request body={} must contain originService", rolesServices);
             throw new InvalidOriginServiceException();

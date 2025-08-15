@@ -6,10 +6,7 @@ import org.qubership.cloud.dbaas.dto.v3.DatabaseResponseV3ListCP;
 import org.qubership.cloud.dbaas.dto.v3.UpdateHostRequest;
 import org.qubership.cloud.dbaas.entity.pg.DatabaseRegistry;
 import org.qubership.cloud.dbaas.exceptions.ErrorCodes;
-import org.qubership.cloud.dbaas.exceptions.InvalidClassifierException;
 import org.qubership.cloud.dbaas.exceptions.RequestValidationException;
-import org.qubership.cloud.dbaas.security.validators.NamespaceValidator;
-import org.qubership.cloud.dbaas.service.AggregatedDatabaseAdministrationService;
 import org.qubership.cloud.dbaas.service.OperationService;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
@@ -44,6 +41,7 @@ import static jakarta.ws.rs.core.Response.Status.BAD_REQUEST;
                 "without requiring a specific namespace in the endpoints.")
 @Produces(MediaType.APPLICATION_JSON)
 public class DatabaseOperationGlobalControllerV3 extends AbstractDatabaseAdministrationController {
+
     private OperationService operationService;
 
     public DatabaseOperationGlobalControllerV3() {}

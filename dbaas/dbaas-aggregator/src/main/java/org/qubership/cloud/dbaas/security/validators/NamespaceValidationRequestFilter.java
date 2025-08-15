@@ -23,12 +23,6 @@ public class NamespaceValidationRequestFilter implements ContainerRequestFilter 
 
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
-        Principal defaultPrincipal = requestContext.getSecurityContext().getUserPrincipal();
-
-        if (!(defaultPrincipal instanceof DefaultJWTCallerPrincipal principal)) {
-            return;
-        }
-
         String namespaceFromPath = requestContext.getUriInfo().getPathParameters().getFirst(DbaasApiPath.NAMESPACE_PARAMETER);
 
         // Don't check namespace if not present
@@ -36,7 +30,7 @@ public class NamespaceValidationRequestFilter implements ContainerRequestFilter 
             return;
         }
 
-        if (!namespaceValidator.checkNamespaceIsolation(namespaceFromPath, JwtUtils.getNamespace(principal))) {
+        if (!namespaceValidator.checkNamespaceIsolation(namespaceFromPath, JwtUtils.getNamespace(requestContext.getSecurityContext()))) {
             requestContext.abortWith(Response.status(Response.Status.FORBIDDEN.getStatusCode(), "Namespace from path and namespace from jwt token doesn't not match or aren't in the same composite structure").build());
         }
     }

@@ -1,5 +1,26 @@
 package org.qubership.cloud.dbaas.controller.v3;
 
+import org.qubership.cloud.dbaas.dto.v3.GetOrCreateUserRequest;
+import org.qubership.cloud.dbaas.dto.v3.GetOrCreateUserResponse;
+import org.qubership.cloud.dbaas.dto.userrestore.RestoreUsersRequest;
+import org.qubership.cloud.dbaas.dto.v3.UserOperationRequest;
+import org.qubership.cloud.dbaas.entity.pg.DatabaseRegistry;
+import org.qubership.cloud.dbaas.entity.pg.DatabaseUser;
+import org.qubership.cloud.dbaas.dto.Source;
+import org.qubership.cloud.dbaas.dto.userrestore.SuccessfulRestoreUsersResponse;
+import org.qubership.cloud.dbaas.dto.userrestore.RestoreUsersResponse;
+import org.qubership.cloud.dbaas.exceptions.DbNotFoundException;
+import org.qubership.cloud.dbaas.exceptions.UserDeletionException;
+import org.qubership.cloud.dbaas.exceptions.UserNotFoundException;
+import org.qubership.cloud.dbaas.service.DBaaService;
+import org.qubership.cloud.dbaas.service.UserService;
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -7,40 +28,18 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import lombok.extern.slf4j.Slf4j;
+
 import org.apache.commons.lang3.ObjectUtils;
-import org.eclipse.microprofile.openapi.annotations.Operation;
-import org.eclipse.microprofile.openapi.annotations.media.Content;
-import org.eclipse.microprofile.openapi.annotations.media.Schema;
-import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
-import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
-import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
-import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.flywaydb.core.internal.util.StringUtils;
 import org.jetbrains.annotations.NotNull;
-import org.qubership.cloud.dbaas.dto.Source;
-import org.qubership.cloud.dbaas.dto.userrestore.RestoreUsersRequest;
-import org.qubership.cloud.dbaas.dto.userrestore.RestoreUsersResponse;
-import org.qubership.cloud.dbaas.dto.userrestore.SuccessfulRestoreUsersResponse;
-import org.qubership.cloud.dbaas.dto.v3.GetOrCreateUserRequest;
-import org.qubership.cloud.dbaas.dto.v3.GetOrCreateUserResponse;
-import org.qubership.cloud.dbaas.dto.v3.UserOperationRequest;
-import org.qubership.cloud.dbaas.entity.pg.DatabaseRegistry;
-import org.qubership.cloud.dbaas.entity.pg.DatabaseUser;
-import org.qubership.cloud.dbaas.exceptions.DbNotFoundException;
-import org.qubership.cloud.dbaas.exceptions.InvalidClassifierException;
-import org.qubership.cloud.dbaas.exceptions.UserDeletionException;
-import org.qubership.cloud.dbaas.exceptions.UserNotFoundException;
-import org.qubership.cloud.dbaas.service.AggregatedDatabaseAdministrationService;
-import org.qubership.cloud.dbaas.service.DBaaService;
-import org.qubership.cloud.dbaas.service.UserService;
 
 import java.util.Map;
 import java.util.Optional;
 
-import static jakarta.ws.rs.core.Response.Status.BAD_REQUEST;
-import static jakarta.ws.rs.core.Response.Status.CREATED;
 import static org.qubership.cloud.dbaas.Constants.DB_CLIENT;
 import static org.qubership.cloud.dbaas.DbaasApiPath.USERS_PATH_V3;
+import static jakarta.ws.rs.core.Response.Status.BAD_REQUEST;
+import static jakarta.ws.rs.core.Response.Status.CREATED;
 
 @Slf4j
 @Path(USERS_PATH_V3)
@@ -52,6 +51,7 @@ public class DatabaseUsersControllerV3 {
 
     @Inject
     private DBaaService dBaaService;
+
     @Inject
     private UserService userService;
 
@@ -68,7 +68,6 @@ public class DatabaseUsersControllerV3 {
     public Response getOrCreateUser(@Parameter(description = "Contains classifier and information about user", required = true)
                                     GetOrCreateUserRequest getOrCreateUserRequest) {
         log.info("Get request to get or create database user. Request body {}", getOrCreateUserRequest);
-
         DatabaseRegistry foundDb = dBaaService.findDatabaseByClassifierAndType(getOrCreateUserRequest.getClassifier(), getOrCreateUserRequest.getType(), true);
         if (foundDb == null) {
             log.error("Database with classifier={} is not found.", getOrCreateUserRequest.getClassifier());
@@ -148,7 +147,6 @@ public class DatabaseUsersControllerV3 {
     public Response rotateUserPassword(@Parameter(description = "Contains userId or classifier, logicalUserId and type field for user identification.", required = true)
                                        UserOperationRequest rotateUserPasswordRequest) {
         log.info("Get request to rotate password for database user. Request body {}", rotateUserPasswordRequest);
-
         if (!isUserOperationRequestValid(rotateUserPasswordRequest)) {
             log.error("Request body is not valid." +
                     "Rotate password user request must contains 'userId' field or 'classifier', 'logicalUserId' and 'type' fields.");
@@ -176,7 +174,6 @@ public class DatabaseUsersControllerV3 {
     public Response restoreUser(@Parameter(description = "Contains classifier, user role and physical database type", required = true)
                                 RestoreUsersRequest restoreUsersRequest) {
         log.info("Get request to restore users");
-
         RestoreUsersResponse restoreUsersResponse = userService.restoreUsers(restoreUsersRequest);
         if (!restoreUsersResponse.getUnsuccessfully().isEmpty()) {
             return Response.serverError().entity(restoreUsersResponse).build();
@@ -193,4 +190,3 @@ public class DatabaseUsersControllerV3 {
                 || StringUtils.hasLength(request.getType());
     }
 }
-

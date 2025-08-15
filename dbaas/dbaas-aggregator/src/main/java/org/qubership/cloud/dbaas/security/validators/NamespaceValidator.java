@@ -14,7 +14,6 @@ import java.security.Principal;
 import java.util.Map;
 import java.util.Optional;
 
-@RequestScoped
 @Slf4j
 public class NamespaceValidator {
     @ConfigProperty(name = "dbaas.security.namespace-isolation-enabled")
@@ -23,43 +22,27 @@ public class NamespaceValidator {
     @Inject
     CompositeNamespaceService compositeNamespaceService;
 
-    @Inject
-    SecurityContext securityContext;
-
     public boolean checkNamespaceIsolation(String namespaceFromPath, String namespaceFromJwt) {
         if (!namespaceIsolationEnabled) {
             return true;
         }
-
-        if (namespaceFromPath.equals(namespaceFromJwt)) {
-            return true;
-        } else {
-            return inSameCompositeStructure(namespaceFromPath, namespaceFromJwt);
-        }
+        return checkNamespacesEqual(namespaceFromPath, namespaceFromJwt);
     }
 
-    public boolean checkNamespaceFromClassifier(Map<String, Object> classifier) {
-        Principal defaultPrincipal = securityContext.getUserPrincipal();
-
-        if (!(defaultPrincipal instanceof DefaultJWTCallerPrincipal principal)) {
-            return true;
-        }
+    public boolean checkNamespaceFromClassifier(Map<String, Object> classifier, String namespaceFromJwt) {
         String namespaceFromClassifier = (String) classifier.get("namespace");
         if (namespaceFromClassifier == null) {
             return false;
         }
+        return checkNamespacesEqual(namespaceFromClassifier, namespaceFromJwt);
+    }
 
-        Map<String, Object> kubernetesClaims = principal.getClaim("kubernetes.io");
-        if (kubernetesClaims == null) {
-            return false;
+    private boolean checkNamespacesEqual(String namespace0, String namespace1) {
+        if (namespace0.equals(namespace1)) {
+            return true;
+        } else {
+            return inSameCompositeStructure(namespace0, namespace1);
         }
-
-        JsonString namespaceFromJwt = (JsonString) kubernetesClaims.get("namespace");
-        if (namespaceFromJwt == null) {
-            return false;
-        }
-
-        return namespaceFromClassifier.equals(namespaceFromJwt.getString()) || inSameCompositeStructure(namespaceFromClassifier, namespaceFromJwt.getString());
     }
 
     private boolean inSameCompositeStructure(String namespace0, String namespace1) {

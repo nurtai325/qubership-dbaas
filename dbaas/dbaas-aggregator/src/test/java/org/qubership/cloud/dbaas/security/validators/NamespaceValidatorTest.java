@@ -67,20 +67,12 @@ class NamespaceValidatorTest {
     @Test
     void checkNamespaceFromClassifier() {
         Set<String> namespaces = Set.of(defaultNamespace, otherNamespaceInComposite);
-        CompositeStructure defaultCompositeStructure = new CompositeStructure(defaultBaseLine, namespaces);
 
         when(compositeNamespaceService.getBaselineByNamespace(otherNamespaceInComposite)).thenReturn(Optional.of(defaultBaseLine));
         when(compositeNamespaceService.getBaselineByNamespace("someOtherNamespace")).thenReturn(Optional.empty());
 
-        JwtClaims claims = new JwtClaims();
-        claims.setClaim("kubernetes.io", Collections.singletonMap("namespace", defaultNamespace));
-
-        DefaultJWTCallerPrincipal principal = new DefaultJWTCallerPrincipal(claims);
-
-        when(securityContext.getUserPrincipal()).thenReturn(principal);
-
-        assertTrue(namespaceValidator.checkNamespaceFromClassifier(Collections.singletonMap("namespace", defaultNamespace)));
-        assertTrue(namespaceValidator.checkNamespaceFromClassifier(Collections.singletonMap("namespace", otherNamespaceInComposite)));
-        assertFalse(namespaceValidator.checkNamespaceFromClassifier(Collections.singletonMap("namespace", "someOtherNamespace")));
+        assertTrue(namespaceValidator.checkNamespaceFromClassifier(Collections.singletonMap("namespace", defaultNamespace), defaultNamespace));
+        assertTrue(namespaceValidator.checkNamespaceFromClassifier(Collections.singletonMap("namespace", otherNamespaceInComposite), defaultNamespace));
+        assertFalse(namespaceValidator.checkNamespaceFromClassifier(Collections.singletonMap("namespace", "someOtherNamespace"), defaultNamespace));
     }
 }

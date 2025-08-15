@@ -10,6 +10,7 @@ import java.util.Map;
 @Data
 @NoArgsConstructor(force = true)
 public abstract class AbstractDatabaseCreateRequest {
+
     protected AbstractDatabaseCreateRequest(@NonNull Map<String, Object> classifier, @NonNull String type) {
         this.classifier = classifier;
         this.type = type;

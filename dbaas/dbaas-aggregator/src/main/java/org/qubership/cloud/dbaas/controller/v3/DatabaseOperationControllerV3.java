@@ -11,7 +11,6 @@ import org.qubership.cloud.dbaas.entity.pg.PhysicalDatabase;
 import org.qubership.cloud.dbaas.exceptions.*;
 import org.qubership.cloud.dbaas.repositories.dbaas.DatabaseRegistryDbaasRepository;
 import org.qubership.cloud.dbaas.repositories.dbaas.PhysicalDatabaseDbaasRepository;
-import org.qubership.cloud.dbaas.security.validators.NamespaceValidator;
 import org.qubership.cloud.dbaas.service.*;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
@@ -77,7 +76,6 @@ public class DatabaseOperationControllerV3 {
                                        @Parameter(description = "Project namespace in which the databases are used")
                                        @PathParam(NAMESPACE_PARAMETER) String namespace) {
         log.info("Received request on changed password with request body {} and namespace {}", passwordChangeRequest, namespace);
-
         if (passwordChangeRequest == null || StringUtils.isEmpty(passwordChangeRequest.getType())) {
             throw new PasswordChangeValidationException("The request body is empty or database type is not specified", Source.builder()
                     .pointer(passwordChangeRequest == null ? "/" : "/type").build());
