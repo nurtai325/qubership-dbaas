@@ -1,5 +1,6 @@
 package org.qubership.cloud.dbaas.service;
 
+import io.quarkus.runtime.Shutdown;
 import jakarta.ws.rs.Priorities;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.qubership.cloud.dbaas.dto.v3.ApiVersion;
@@ -37,6 +38,8 @@ public class DbaasAdapterRESTClientFactory {
     @Inject
     TimeMeasurementManager timeMeasurementManager;
 
+    K8sTokenAuthFilter k8sTokenAuthFilter;
+
     public DbaasAdapter createDbaasAdapterClient(String username, String password, String adapterAddress, String type,
                                                  String identifier, AdapterActionTrackerClient tracker) {
         BasicAuthFilter authFilter = new BasicAuthFilter(username, password);
@@ -52,12 +55,9 @@ public class DbaasAdapterRESTClientFactory {
     public DbaasAdapter createDbaasAdapterClientV2(String username, String password, String adapterAddress, String type,
                                                    String identifier, AdapterActionTrackerClient tracker, ApiVersion apiVersions) {
         BasicAuthFilter basicAuthFilter = new BasicAuthFilter(username, password);
-
-        K8sTokenAuthFilter k8sTokenAuthFilter = null;
         if (isJwtEnabled) {
              k8sTokenAuthFilter = new K8sTokenAuthFilter(tokenDir, tokenLocation);
         }
-
         DynamicAuthFilter dynamicAuthFilter = new DynamicAuthFilter(k8sTokenAuthFilter != null ? k8sTokenAuthFilter : basicAuthFilter);
 
         DbaasAdapterRestClientV2 restClient = RestClientBuilder.newBuilder().baseUri(URI.create(adapterAddress))
@@ -73,4 +73,10 @@ public class DbaasAdapterRESTClientFactory {
                 timeMeasurementManager.provideTimeMeasurementInvocationHandler(new DbaasAdapterRESTClientV2(adapterAddress, type, secureRestClient, identifier, tracker, apiVersions)));
     }
 
+    @Shutdown
+    void shutdown() {
+        if (k8sTokenAuthFilter != null) {
+            k8sTokenAuthFilter.close();
+        }
+    }
 }

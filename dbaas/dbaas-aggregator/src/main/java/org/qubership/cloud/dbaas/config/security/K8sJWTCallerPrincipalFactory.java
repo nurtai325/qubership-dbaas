@@ -36,21 +36,30 @@ public class K8sJWTCallerPrincipalFactory extends JWTCallerPrincipalFactory {
             .withMaxRetries(5)
             .withBackoff(500, Duration.ofSeconds(60).toMillis(), ChronoUnit.MILLIS);
 
-    @Inject
-    @ConfigProperty(name = "dbaas.security.k8s.jwks.refhresh-rate-seconds")
-    private int jwksRefreshRateSeconds;
-
     private final Object lock = new Object();
-    private final K8sOidcRestClient k8sOidcRestClient;
-    private final String jwtJwksEndpoint;
-    private final JwtConsumer jwtClaimsParser;
-    private volatile List<JsonWebKey> jwksCache;
+    private int jwksRefreshRateSeconds;
+    private String jwtJwksEndpoint;
+    private JwtConsumer jwtClaimsParser;
+    private List<JsonWebKey> jwksCache;
     private volatile Instant lastJwksRefreshedTime;
 
-    public K8sJWTCallerPrincipalFactory(@ConfigProperty(name = "dbaas.security.k8s.jwt.oidc-provider-url") String jwtIssuer,
-                                        @ConfigProperty(name = "dbaas.security.k8s.jwt.audience") String jwtAudience,
-                                        K8sOidcRestClient k8sOidcRestClient) {
+    private K8sOidcRestClient k8sOidcRestClient;
+
+    public K8sJWTCallerPrincipalFactory(
+            @ConfigProperty(name = "dbaas.security.k8s.jwks.refhresh-rate-seconds") int jwksRefreshRateSeconds,
+            @ConfigProperty(name = "dbaas.security.k8s.jwt.enabled") boolean isJwtEnabled,
+            @ConfigProperty(name = "dbaas.security.k8s.jwt.oidc-provider-url") String jwtIssuer,
+            @ConfigProperty(name = "dbaas.security.k8s.jwt.audience") String jwtAudience,
+            K8sOidcRestClient k8sOidcRestClient
+    ) {
+        if (isJwtEnabled) {
+            return;
+        }
+
+        this.jwksRefreshRateSeconds = jwksRefreshRateSeconds;
         this.k8sOidcRestClient = k8sOidcRestClient;
+
+        log.debug("Started creating K8sJWTCallerPrincipalFactory bean");
 
         jwtClaimsParser = new JwtConsumerBuilder()
                 .setRequireExpirationTime()
@@ -64,6 +73,8 @@ public class K8sJWTCallerPrincipalFactory extends JWTCallerPrincipalFactory {
         jwtJwksEndpoint = k8sOidcRestClient.getOidcConfiguration(jwtIssuer).getJwks_uri();
 
         refreshJwksCache();
+
+        log.debug("Finished creating K8sJWTCallerPrincipalFactory bean");
     }
 
     @Override
@@ -100,7 +111,7 @@ public class K8sJWTCallerPrincipalFactory extends JWTCallerPrincipalFactory {
     private void refreshJwksCache() {
         try {
             Failsafe.with(retryPolicy).run(() -> {
-                String rawJwks = (k8sOidcRestClient.getJwks(jwtJwksEndpoint));
+                String rawJwks = k8sOidcRestClient.getJwks(jwtJwksEndpoint);
                 jwksCache = new JsonWebKeySet(rawJwks).getJsonWebKeys();
                 lastJwksRefreshedTime = Instant.now();
             });

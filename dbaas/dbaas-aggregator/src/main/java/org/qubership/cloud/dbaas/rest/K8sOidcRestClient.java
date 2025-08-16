@@ -1,8 +1,8 @@
 package org.qubership.cloud.dbaas.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.quarkus.runtime.Shutdown;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
@@ -24,24 +24,21 @@ import java.security.cert.X509Certificate;
 @Slf4j
 public class K8sOidcRestClient {
     private final OkHttpClient client;
+    private K8sTokenInterceptor k8sTokenInterceptor;
 
-    @Inject
-    @ConfigProperty(name = "dbaas.security.k8s.jwt.token.service-account.cert-path")
-    String caCertPath;
-
-    public K8sOidcRestClient(@ConfigProperty(name = "dbaas.security.k8s.jwks.secure") boolean isKubernetesIdpSecure) throws IOException {
-        log.debug("Started creating K8sOidcRestClient bean");
-
+    public K8sOidcRestClient(@ConfigProperty(name = "dbaas.security.k8s.jwks.secure") boolean isKubernetesIdpSecure,
+                             @ConfigProperty(name = "dbaas.security.k8s.jwt.token.service-account.cert-path") String caCertPath,
+                             @ConfigProperty(name = "dbaas.security.k8s.jwt.token.service-account.path") String tokenLocation,
+                             @ConfigProperty(name = "dbaas.security.k8s.jwt.token.service-account.dir") String tokenDir) throws IOException {
         Builder builder = new OkHttpClient.Builder();
 
         if (isKubernetesIdpSecure) {
-            setSslSocketFactory(builder);
-            builder.addInterceptor(new K8sTokenInterceptor());
+            setSslSocketFactory(builder, caCertPath);
+            k8sTokenInterceptor = new K8sTokenInterceptor(tokenLocation, tokenDir);
+            builder.addInterceptor(k8sTokenInterceptor);
         }
 
         client = builder.build();
-
-        log.debug("Finished creating K8sOidcRestClient bean");
     }
 
     public OidcConfig getOidcConfiguration(String oidcProviderUrl) throws RuntimeException {
@@ -76,7 +73,7 @@ public class K8sOidcRestClient {
         }
     }
 
-    private void setSslSocketFactory(Builder builder) throws IOException {
+    private void setSslSocketFactory(Builder builder, String caCertPath) throws IOException {
         X509Certificate caCert = Certificates.decodeCertificatePem(Files.readString(Path.of(caCertPath)));
 
         HandshakeCertificates certificates = new HandshakeCertificates.Builder()
@@ -84,5 +81,13 @@ public class K8sOidcRestClient {
                 .build();
 
         builder.sslSocketFactory(certificates.sslSocketFactory(), certificates.trustManager());
+    }
+
+
+    @Shutdown
+    void shutdown() {
+        if (k8sTokenInterceptor != null) {
+            k8sTokenInterceptor.close();
+        }
     }
 }
