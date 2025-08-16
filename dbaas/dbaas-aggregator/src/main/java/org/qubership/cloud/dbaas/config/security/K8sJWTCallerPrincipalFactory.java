@@ -6,6 +6,7 @@ import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.enterprise.inject.Alternative;
+import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import net.jodah.failsafe.Failsafe;
 import net.jodah.failsafe.RetryPolicy;
@@ -22,6 +23,7 @@ import org.jose4j.lang.JoseException;
 import org.qubership.cloud.dbaas.rest.K8sOidcRestClient;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
@@ -34,11 +36,16 @@ public class K8sJWTCallerPrincipalFactory extends JWTCallerPrincipalFactory {
             .withMaxRetries(5)
             .withBackoff(500, Duration.ofSeconds(60).toMillis(), ChronoUnit.MILLIS);
 
+    @Inject
+    @ConfigProperty(name = "dbaas.security.k8s.jwks.refhresh-rate-seconds")
+    private int jwksRefreshRateSeconds;
+
     private final Object lock = new Object();
     private final K8sOidcRestClient k8sOidcRestClient;
     private final String jwtJwksEndpoint;
     private final JwtConsumer jwtClaimsParser;
     private volatile List<JsonWebKey> jwksCache;
+    private volatile Instant lastJwksRefreshedTime;
 
     public K8sJWTCallerPrincipalFactory(@ConfigProperty(name = "dbaas.security.k8s.jwt.oidc-provider-url") String jwtIssuer,
                                         @ConfigProperty(name = "dbaas.security.k8s.jwt.audience") String jwtAudience,
@@ -95,6 +102,7 @@ public class K8sJWTCallerPrincipalFactory extends JWTCallerPrincipalFactory {
             Failsafe.with(retryPolicy).run(() -> {
                 String rawJwks = (k8sOidcRestClient.getJwks(jwtJwksEndpoint));
                 jwksCache = new JsonWebKeySet(rawJwks).getJsonWebKeys();
+                lastJwksRefreshedTime = Instant.now();
             });
         } catch (TimeoutExceededException e) {
             log.error("Getting Json web keys from kubernetes jwks endpoint %s failed".formatted(jwtJwksEndpoint), e);
@@ -102,6 +110,10 @@ public class K8sJWTCallerPrincipalFactory extends JWTCallerPrincipalFactory {
     }
 
     private JsonWebKey getJwk(String keyId) {
+        if ((Instant.now().getEpochSecond() - lastJwksRefreshedTime.getEpochSecond()) >= jwksRefreshRateSeconds) {
+            return getJwksFromCache(keyId);
+        }
+
         JsonWebKey jwk = getJwksFromCache(keyId);
         if (jwk != null) {
             return jwk;

@@ -1,6 +1,7 @@
 package org.qubership.cloud.dbaas.security.validators;
 
 import io.smallrye.jwt.auth.principal.DefaultJWTCallerPrincipal;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.json.JsonString;
@@ -15,6 +16,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
+@ApplicationScoped
 public class NamespaceValidator {
     @ConfigProperty(name = "dbaas.security.namespace-isolation-enabled")
     boolean namespaceIsolationEnabled;
