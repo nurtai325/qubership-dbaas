@@ -50,7 +50,7 @@ public class K8sJWTCallerPrincipalFactory extends JWTCallerPrincipalFactory {
             @ConfigProperty(name = "dbaas.security.k8s.jwt.audience") String jwtAudience,
             K8sOidcRestClient k8sOidcRestClient
     ) {
-        if (isJwtEnabled) {
+        if (!isJwtEnabled) {
             return;
         }
 
