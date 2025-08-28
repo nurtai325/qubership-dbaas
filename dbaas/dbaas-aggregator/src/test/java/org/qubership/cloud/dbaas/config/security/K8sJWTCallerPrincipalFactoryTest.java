@@ -39,10 +39,10 @@ class K8sJWTCallerPrincipalFactoryTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        when(restClient.getOidcConfiguration(jwtUtils.getJwtIssuer())).thenReturn(new OidcConfig(jwtUtils.getJwksEndpoint()));
+        when(restClient.getOidcConfiguration()).thenReturn(new OidcConfig(jwtUtils.getJwksEndpoint()));
         when(restClient.getJwks(jwtUtils.getJwksEndpoint())).thenReturn(jwtUtils.getJwks());
 
-        parser = new K8sJWTCallerPrincipalFactory(true, jwtUtils.getJwtIssuer(), jwtUtils.getDbaasJwtAudience(), restClient);
+        parser = new K8sJWTCallerPrincipalFactory(true, jwtUtils.getDbaasJwtAudience(), restClient);
     }
 
     @AfterEach

@@ -22,7 +22,7 @@ public class MockedK8sOidcRestClient extends K8sOidcRestClient {
     }
 
     @Override
-    public OidcConfig getOidcConfiguration(String oidcProviderUrl) throws RuntimeException {
+    public OidcConfig getOidcConfiguration() throws RuntimeException {
         return new OidcConfig("");
     }
 

@@ -6,7 +6,6 @@ import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.enterprise.inject.Alternative;
-import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import net.jodah.failsafe.Failsafe;
 import net.jodah.failsafe.RetryPolicy;
@@ -40,13 +39,11 @@ public class K8sJWTCallerPrincipalFactory extends JWTCallerPrincipalFactory {
     private String jwtJwksEndpoint;
     private JwtConsumer jwtClaimsParser;
     private List<JsonWebKey> jwksCache;
-    private volatile Instant lastJwksRefreshedTime;
 
     private K8sOidcRestClient k8sOidcRestClient;
 
     public K8sJWTCallerPrincipalFactory(
             @ConfigProperty(name = "dbaas.security.k8s.jwt.enabled") boolean isJwtEnabled,
-            @ConfigProperty(name = "dbaas.security.k8s.jwt.oidc-provider-url") String jwtIssuer,
             @ConfigProperty(name = "dbaas.security.k8s.jwt.audience") String jwtAudience,
             K8sOidcRestClient k8sOidcRestClient
     ) {
@@ -61,12 +58,12 @@ public class K8sJWTCallerPrincipalFactory extends JWTCallerPrincipalFactory {
                 .setRequireExpirationTime()
                 .setAllowedClockSkewInSeconds(30)
                 .setRequireSubject()
-                .setExpectedIssuer(jwtIssuer)
+                .setExpectedIssuer(k8sOidcRestClient.getJwtIssuer())
                 .setExpectedAudience(jwtAudience)
                 .setSkipSignatureVerification()
                 .build();
 
-        jwtJwksEndpoint = k8sOidcRestClient.getOidcConfiguration(jwtIssuer).getJwks_uri();
+        jwtJwksEndpoint = k8sOidcRestClient.getOidcConfiguration().getJwks_uri();
 
         refreshJwksCache();
 
@@ -109,7 +106,6 @@ public class K8sJWTCallerPrincipalFactory extends JWTCallerPrincipalFactory {
             Failsafe.with(retryPolicy).run(() -> {
                 String rawJwks = k8sOidcRestClient.getJwks(jwtJwksEndpoint);
                 jwksCache = new JsonWebKeySet(rawJwks).getJsonWebKeys();
-                lastJwksRefreshedTime = Instant.now();
             });
         } catch (TimeoutExceededException e) {
             log.error("Getting Json web keys from kubernetes jwks endpoint %s failed".formatted(jwtJwksEndpoint), e);

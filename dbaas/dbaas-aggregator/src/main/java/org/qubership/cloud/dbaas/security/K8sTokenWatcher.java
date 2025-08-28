@@ -1,16 +1,16 @@
 package org.qubership.cloud.dbaas.security;
 
-import jakarta.inject.Inject;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.jodah.failsafe.Failsafe;
 import net.jodah.failsafe.RetryPolicy;
 import net.jodah.failsafe.TimeoutExceededException;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jose4j.jwt.JwtClaims;
 import org.jose4j.jwt.MalformedClaimException;
 import org.jose4j.jwt.consumer.InvalidJwtException;
 import org.jose4j.jwt.consumer.JwtConsumer;
 import org.jose4j.jwt.consumer.JwtConsumerBuilder;
+import org.jose4j.jwt.consumer.JwtContext;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,12 +24,11 @@ import java.util.concurrent.atomic.AtomicReference;
 public class K8sTokenWatcher implements Runnable {
     private static final String tokenFileLinkName = "..data";
 
+    @Getter
+    private final String tokenIssuer;
     private final String tokenDir;
-
     private final WatchService watchService;
-
     private final AtomicReference<String> tokenCache;
-
     private RetryPolicy<Object> retryPolicy;
 
     public K8sTokenWatcher(String tokenDir, AtomicReference<String> tokenCache) {
@@ -45,11 +44,19 @@ public class K8sTokenWatcher implements Runnable {
                 throw new RuntimeException("Failed to load Kubernetes service account token with dir %s".formatted(tokenDir));
             }
 
+            JwtConsumer jwtConsumer = new JwtConsumerBuilder()
+                    .setSkipAllValidators()
+                    .setDisableRequireSignature()
+                    .setSkipSignatureVerification()
+                    .build();
+            JwtContext jwtContext = jwtConsumer.process(tokenCache.get());
+            this.tokenIssuer = jwtContext.getJwtClaims().getIssuer();;
+
             watchService = FileSystems.getDefault().newWatchService();
 
             Path path = Paths.get(this.tokenDir);
             path.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException | InvalidJwtException | InterruptedException | MalformedClaimException e) {
             log.error("Failed to create K8sTokenWatcher", e);
             throw new RuntimeException(e);
         }

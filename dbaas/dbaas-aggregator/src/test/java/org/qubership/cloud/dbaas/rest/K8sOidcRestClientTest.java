@@ -48,8 +48,9 @@ class K8sOidcRestClientTest {
         server.start();
 
         HttpUrl baseUrl = server.url("");
+        restClient.jwtIssuer = baseUrl.toString();
 
-        assertEquals("https://192.168.49.2:8443/openid/v1/jwks", restClient.getOidcConfiguration(baseUrl.toString()).getJwks_uri());
+        assertEquals("https://192.168.49.2:8443/openid/v1/jwks", restClient.getOidcConfiguration().getJwks_uri());
 
         server.close();
     }

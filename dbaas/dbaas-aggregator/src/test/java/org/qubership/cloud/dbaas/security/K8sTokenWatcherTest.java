@@ -79,4 +79,23 @@ class K8sTokenWatcherTest {
             assertEquals(newJwt, tokenCache.get());
         });
     }
+
+    @Test
+    void TestGetIssuer(@TempDir Path dir) throws IOException, JoseException {
+        tempdir = dir.toAbsolutePath().toString();
+
+        tokenFile = Files.createFile(Path.of(tempdir + "/token"));
+
+        JwtClaims claims = new JwtClaims();
+        claims.setExpirationTimeMinutesInTheFuture(10);
+        claims.setIssuedAtToNow();
+        claims.setIssuer(jwtUtils.getJwtIssuer());
+        String oldJwt = jwtUtils.newJwt(claims, false);
+
+        Files.writeString(tokenFile, oldJwt);
+        tokenCache = new AtomicReference<>("");
+        watcher = new K8sTokenWatcher(tempdir, tokenCache);
+
+        assertEquals(jwtUtils.getJwtIssuer(), watcher.getTokenIssuer());
+    }
 }

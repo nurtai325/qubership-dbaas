@@ -3,6 +3,7 @@ package org.qubership.cloud.dbaas.rest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.runtime.Shutdown;
 import jakarta.enterprise.context.ApplicationScoped;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
@@ -20,6 +21,8 @@ import java.io.IOException;
 public class K8sOidcRestClient {
     private final OkHttpClient client;
     private K8sTokenInterceptor k8sTokenInterceptor;
+    @Getter
+    String jwtIssuer;
 
     public K8sOidcRestClient(@ConfigProperty(name = "dbaas.security.k8s.jwt.enabled") boolean isJwtEnabled,
                              @ConfigProperty(name = "dbaas.security.k8s.jwt.token.service-account.dir") String tokenDir) throws IOException {
@@ -27,15 +30,16 @@ public class K8sOidcRestClient {
 
         if (isJwtEnabled) {
             k8sTokenInterceptor = new K8sTokenInterceptor(tokenDir);
+            jwtIssuer = k8sTokenInterceptor.getTokenIssuer();
             builder.addInterceptor(k8sTokenInterceptor);
         }
 
         client = builder.build();
     }
 
-    public OidcConfig getOidcConfiguration(String oidcProviderUrl) throws RuntimeException {
+    public OidcConfig getOidcConfiguration() throws RuntimeException {
         Request request = new Request.Builder()
-                .url(oidcProviderUrl + "/.well-known/openid-configuration")
+                .url(jwtIssuer + "/.well-known/openid-configuration")
                 .build();
 
         Call call = client.newCall(request);

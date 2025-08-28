@@ -1,6 +1,5 @@
 package org.qubership.cloud.dbaas.security.interceptors;
 
-import io.quarkus.runtime.Shutdown;
 import jakarta.ws.rs.core.HttpHeaders;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Interceptor;
@@ -15,11 +14,13 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 public class K8sTokenInterceptor implements Interceptor {
     private final AtomicReference<String> token = new AtomicReference<>();
+    private final K8sTokenWatcher watcher;
     private final Thread watcherThread;
 
     public K8sTokenInterceptor(String tokenDir) {
         token.set("");
-        watcherThread = Thread.startVirtualThread(new K8sTokenWatcher(tokenDir, token));
+        watcher = new K8sTokenWatcher(tokenDir, token);
+        watcherThread = Thread.startVirtualThread(watcher);
     }
 
     public @NotNull Response intercept(Interceptor.Chain chain) throws IOException {
@@ -29,6 +30,10 @@ public class K8sTokenInterceptor implements Interceptor {
                 .build();
 
         return chain.proceed(requestWithUserAgent);
+    }
+
+    public String getTokenIssuer() {
+        return watcher.getTokenIssuer();
     }
 
     public void close() {
