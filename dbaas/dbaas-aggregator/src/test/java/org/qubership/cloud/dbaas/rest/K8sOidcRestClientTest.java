@@ -26,7 +26,7 @@ class K8sOidcRestClientTest {
 
     K8sOidcRestClientTest() throws IOException, JoseException {
         mockJwks = new TestJwtUtils().getJwks();
-        restClient = new K8sOidcRestClient(false, "", "", "");
+        restClient = new K8sOidcRestClient(false, "");
     }
 
     @BeforeEach

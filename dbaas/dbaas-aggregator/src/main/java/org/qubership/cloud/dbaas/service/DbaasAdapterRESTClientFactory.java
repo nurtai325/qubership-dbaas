@@ -28,10 +28,6 @@ public class DbaasAdapterRESTClientFactory {
     private boolean isJwtEnabled;
 
     @Inject
-    @ConfigProperty(name = "dbaas.security.k8s.jwt.token.netcracker.path")
-    private String tokenLocation;
-
-    @Inject
     @ConfigProperty(name = "dbaas.security.k8s.jwt.token.netcracker.dir")
     private String tokenDir;
 
@@ -56,7 +52,7 @@ public class DbaasAdapterRESTClientFactory {
                                                    String identifier, AdapterActionTrackerClient tracker, ApiVersion apiVersions) {
         BasicAuthFilter basicAuthFilter = new BasicAuthFilter(username, password);
         if (isJwtEnabled) {
-             k8sTokenAuthFilter = new K8sTokenAuthFilter(tokenDir, tokenLocation);
+             k8sTokenAuthFilter = new K8sTokenAuthFilter(tokenDir);
         }
         DynamicAuthFilter dynamicAuthFilter = new DynamicAuthFilter(k8sTokenAuthFilter != null ? k8sTokenAuthFilter : basicAuthFilter);
 

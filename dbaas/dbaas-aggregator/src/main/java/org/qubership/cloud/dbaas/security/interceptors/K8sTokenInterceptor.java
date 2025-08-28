@@ -17,9 +17,9 @@ public class K8sTokenInterceptor implements Interceptor {
     private final AtomicReference<String> token = new AtomicReference<>();
     private final Thread watcherThread;
 
-    public K8sTokenInterceptor(String tokenLocation, String tokenDir) {
+    public K8sTokenInterceptor(String tokenDir) {
         token.set("");
-        watcherThread = Thread.startVirtualThread(new K8sTokenWatcher(tokenDir, tokenLocation, token));
+        watcherThread = Thread.startVirtualThread(new K8sTokenWatcher(tokenDir, token));
     }
 
     public @NotNull Response intercept(Interceptor.Chain chain) throws IOException {

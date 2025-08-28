@@ -59,7 +59,7 @@ class K8sTokenWatcherTest {
 
         tokenCache = new AtomicReference<>("");
 
-        watcher = new K8sTokenWatcher(tempdir, tokenFile.toAbsolutePath().toString(), tokenCache);
+        watcher = new K8sTokenWatcher(tempdir, tokenCache);
 
         watcherThread = Thread.startVirtualThread(watcher);
 

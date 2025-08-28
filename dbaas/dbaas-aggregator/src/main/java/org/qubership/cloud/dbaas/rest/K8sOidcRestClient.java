@@ -9,16 +9,11 @@ import okhttp3.OkHttpClient;
 import okhttp3.OkHttpClient.Builder;
 import okhttp3.Request;
 import okhttp3.Response;
-import okhttp3.tls.Certificates;
-import okhttp3.tls.HandshakeCertificates;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.qubership.cloud.dbaas.dto.oidc.OidcConfig;
 import org.qubership.cloud.dbaas.security.interceptors.K8sTokenInterceptor;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.security.cert.X509Certificate;
 
 @ApplicationScoped
 @Slf4j
@@ -26,15 +21,12 @@ public class K8sOidcRestClient {
     private final OkHttpClient client;
     private K8sTokenInterceptor k8sTokenInterceptor;
 
-    public K8sOidcRestClient(@ConfigProperty(name = "dbaas.security.k8s.jwks.secure") boolean isKubernetesIdpSecure,
-                             @ConfigProperty(name = "dbaas.security.k8s.jwt.token.service-account.cert-path") String caCertPath,
-                             @ConfigProperty(name = "dbaas.security.k8s.jwt.token.service-account.path") String tokenLocation,
+    public K8sOidcRestClient(@ConfigProperty(name = "dbaas.security.k8s.jwt.enabled") boolean isJwtEnabled,
                              @ConfigProperty(name = "dbaas.security.k8s.jwt.token.service-account.dir") String tokenDir) throws IOException {
         Builder builder = new OkHttpClient.Builder();
 
-        if (isKubernetesIdpSecure) {
-            setSslSocketFactory(builder, caCertPath);
-            k8sTokenInterceptor = new K8sTokenInterceptor(tokenLocation, tokenDir);
+        if (isJwtEnabled) {
+            k8sTokenInterceptor = new K8sTokenInterceptor(tokenDir);
             builder.addInterceptor(k8sTokenInterceptor);
         }
 
@@ -72,17 +64,6 @@ public class K8sOidcRestClient {
             return response.body().string();
         }
     }
-
-    private void setSslSocketFactory(Builder builder, String caCertPath) throws IOException {
-        X509Certificate caCert = Certificates.decodeCertificatePem(Files.readString(Path.of(caCertPath)));
-
-        HandshakeCertificates certificates = new HandshakeCertificates.Builder()
-                .addTrustedCertificate(caCert)
-                .build();
-
-        builder.sslSocketFactory(certificates.sslSocketFactory(), certificates.trustManager());
-    }
-
 
     @Shutdown
     void shutdown() {

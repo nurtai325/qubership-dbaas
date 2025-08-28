@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class K8sTokenWatcher implements Runnable {
     private static final String tokenFileLinkName = "..data";
 
-    private final String tokenLocation;
+    private final String tokenDir;
 
     private final WatchService watchService;
 
@@ -32,22 +32,22 @@ public class K8sTokenWatcher implements Runnable {
 
     private RetryPolicy<Object> retryPolicy;
 
-    public K8sTokenWatcher(String tokenDir, String tokenLocation, AtomicReference<String> tokenCache) {
+    public K8sTokenWatcher(String tokenDir, AtomicReference<String> tokenCache) {
         retryPolicy = new RetryPolicy<>()
                 .withMaxRetries(-1)
                 .withBackoff(500, Duration.ofSeconds(600).toMillis(), ChronoUnit.MILLIS);
 
-        this.tokenLocation = tokenLocation;
+        this.tokenDir = tokenDir;
         this.tokenCache = tokenCache;
 
         try {
             if (!refreshToken()) {
-                throw new RuntimeException("Failed to load Kubernetes service account token with path %s".formatted(tokenLocation));
+                throw new RuntimeException("Failed to load Kubernetes service account token with dir %s".formatted(tokenDir));
             }
 
             watchService = FileSystems.getDefault().newWatchService();
 
-            Path path = Paths.get(tokenDir);
+            Path path = Paths.get(this.tokenDir);
             path.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
         } catch (IOException | InterruptedException e) {
             log.error("Failed to create K8sTokenWatcher", e);
@@ -77,16 +77,16 @@ public class K8sTokenWatcher implements Runnable {
     }
 
     private boolean refreshToken() throws InterruptedException {
-        File tokenFile = new File(tokenLocation);
+        File tokenFile = new File(tokenDir+"/token");
 
         if (!tokenFile.exists()) {
-            String msg = "Kubernetes service account token at path %s doesn't exist".formatted(tokenLocation);
+            String msg = "Kubernetes service account token at dir %s doesn't exist".formatted(tokenDir);
             log.error(msg);
             throw new InterruptedException(msg);
         }
 
         if (!tokenFile.canRead()) {
-            String msg = "Process doesn't have read permissions to Kubernetes service account token at path %s".formatted(tokenLocation);
+            String msg = "Process doesn't have read permissions to Kubernetes service account token at dir %s".formatted(tokenDir);
             log.error(msg);
             throw new InterruptedException(msg);
         }

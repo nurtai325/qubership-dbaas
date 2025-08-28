@@ -16,10 +16,10 @@ public class K8sTokenAuthFilter implements ClientRequestFilter {
     private final AtomicReference<String> token = new AtomicReference<>();
     private Thread watcherThread;
 
-    public K8sTokenAuthFilter(String tokenDir, String tokenLocation) {
+    public K8sTokenAuthFilter(String tokenDir) {
         token.set("");
 
-        watcherThread = Thread.startVirtualThread(new K8sTokenWatcher(tokenDir, tokenLocation, token));
+        watcherThread = Thread.startVirtualThread(new K8sTokenWatcher(tokenDir, token));
     }
 
     @Override

@@ -42,7 +42,7 @@ class K8sJWTCallerPrincipalFactoryTest {
         when(restClient.getOidcConfiguration(jwtUtils.getJwtIssuer())).thenReturn(new OidcConfig(jwtUtils.getJwksEndpoint()));
         when(restClient.getJwks(jwtUtils.getJwksEndpoint())).thenReturn(jwtUtils.getJwks());
 
-        parser = new K8sJWTCallerPrincipalFactory(0, false, jwtUtils.getJwtIssuer(), jwtUtils.getDbaasJwtAudience(), restClient);
+        parser = new K8sJWTCallerPrincipalFactory(false, jwtUtils.getJwtIssuer(), jwtUtils.getDbaasJwtAudience(), restClient);
     }
 
     @AfterEach
